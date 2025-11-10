@@ -14,6 +14,9 @@ This custom integration allows you to control ProPresenter presentation software
 - **Dynamic Message Service**: Service to show messages with token replacement support
 - **Status Monitoring**: Automatically tracks connection status and active presentation
 
+<img width="1559" height="672" alt="image" src="https://github.com/user-attachments/assets/8d3b2120-7683-4eea-bcb4-654c3c7ff82f" />
+
+
 ## Installation
 
 ### HACS (Recommended)
@@ -105,38 +108,6 @@ Clear layer controls that show active content and allow clearing:
 - **Turn OFF**: Clears the layer (removes active content)
 - **Turn ON**: No action (content must be triggered via buttons/services)
 
-**Note**: Currently only Messages and Slide layers report their active state from the ProPresenter API. Other layers default to OFF (cleared) as the API doesn't expose their status.
-
-## Services
-
-### `propresenter.show_message`
-
-Show a ProPresenter message with optional dynamic token values.
-
-**Parameters:**
-- `message` (required): UUID or name of the message to show
-- `tokens` (optional): Dictionary of token names and values for dynamic content
-
-**Example with message name:**
-```yaml
-service: propresenter.show_message
-data:
-  message: "Child message"
-  tokens:
-    Name: "John Smith"
-```
-
-**Example with message UUID:**
-```yaml
-service: propresenter.show_message
-data:
-  message: "4e677061-f132-4f21-8ddf-84df5cf8a58a"
-  tokens:
-    Name: "Jane Doe"
-```
-
-**Note**: You can find message UUIDs by checking the entity attributes in Home Assistant or using the ProPresenter API diagnostic tool.
-
 ## Usage Examples
 
 ### Automations
@@ -192,44 +163,6 @@ automation:
           entity_id: button.propresenter_next_slide
 ```
 
-### Scripts
-
-Create shortcuts for common actions:
-
-```yaml
-script:
-  advance_presentation:
-    alias: "Advance Presentation"
-    sequence:
-      - service: button.press
-        target:
-          entity_id: button.propresenter_next_slide
-  
-  switch_to_lyrics_layout:
-    alias: "Switch to Lyrics Layout"
-    sequence:
-      - service: select.select_option
-        target:
-          entity_id: select.propresenter_main_screen_layout
-        data:
-          option: "Lyrics"
-```
-
-### Dashboards
-
-Add controls to your Lovelace dashboard:
-
-```yaml
-type: entities
-title: ProPresenter Controls
-entities:
-  - entity: button.propresenter_previous_slide
-  - entity: button.propresenter_next_slide
-  - entity: select.propresenter_stage_screen_layout
-  - entity: switch.propresenter_clear_messages
-  - entity: switch.propresenter_clear_slide
-```
-
 **Using switches for clear controls:**
 
 ```yaml
@@ -249,42 +182,8 @@ automation:
 
 ## API Reference
 
-This integration uses the ProPresenter REST API v1. Key endpoints:
-
-- `GET /version` - Get ProPresenter version information
-- `GET /v1/presentation/active` - Get active presentation details
-- `GET /v1/trigger/next` - Trigger next slide/cue
-- `GET /v1/trigger/previous` - Trigger previous slide/cue
-- `GET /v1/stage/screens` - Get all configured stage screens
-- `GET /v1/stage/layouts` - Get all configured stage layouts
-- `GET /v1/stage/layout_map` - Get current layout assignments per screen
-- `GET /v1/stage/screen/{screen_id}/layout/{layout_id}` - Set stage screen layout
-- `GET /v1/messages` - Get all configured messages
-- `POST /v1/message/{message_id}/trigger` - Show/trigger a message with tokens
-- `GET /v1/message/{message_id}/clear` - Hide/clear a message
-- `GET /v1/clear/groups` - Get all configured clear groups
-- `GET /v1/clear/layer/{layer}` - Clear a specific layer (audio, messages, props, announcements, slide, media, video_input)
-
+This integration uses the ProPresenter REST API v1.
 Full API documentation: https://openapi.propresenter.com/
-
-## Troubleshooting
-
-### Cannot Connect
-
-- Verify ProPresenter is running and the Network API is enabled
-- Check that the IP address and port are correct
-- Ensure your firewall allows connections on the specified port
-- Test the connection by visiting `http://<ip>:<port>/version` in a web browser
-
-### Buttons Not Working
-
-- Check that a presentation or playlist is active in ProPresenter
-- Verify the ProPresenter API is responding (check Home Assistant logs)
-- Restart the integration from Settings → Devices & Services
-
-## Support
-
-For issues and feature requests, please visit the GitHub repository.
 
 ## License
 
@@ -294,5 +193,5 @@ This integration is provided as-is for use with Home Assistant and ProPresenter.
 
 - ProPresenter by Renewed Vision: https://renewedvision.com/propresenter/
 - ProPresenter API Documentation: https://openapi.propresenter.com/
-
+- greyshirtguy https://github.com/bitfocus/companion-module-renewedvision-propresenter-api
 
