@@ -1,0 +1,92 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to ProPresenter",
+        "description": "Enter the connection details for your ProPresenter instance.",
+        "data": {
+          "host": "IP Address or Hostname",
+          "port": "Port",
+          "requires_confirmation": "Enable confirmation notifications for messages"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure ProPresenter",
+        "description": "Update the connection details for your ProPresenter instance.",
+        "data": {
+          "host": "IP Address or Hostname",
+          "port": "Port",
+          "requires_confirmation": "Enable confirmation notifications for messages"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to ProPresenter. Please check the IP address and port.",
+      "unknown": "An unexpected error occurred. Please try again."
+    },
+    "abort": {
+      "already_configured": "This ProPresenter instance is already configured.",
+      "reconfigure_successful": "ProPresenter reconfigured successfully"
+    }
+  },
+  "entity": {
+    "button": {
+      "next_slide": {
+        "name": "Next slide"
+      },
+      "previous_slide": {
+        "name": "Previous slide"
+      },
+      "show_message": {
+        "name": "Show message"
+      },
+      "hide_message": {
+        "name": "Hide message"
+      }
+    },
+    "select": {
+      "stage_layout": {
+        "name": "Stage layout"
+      }
+    },
+    "switch": {
+      "clear_audio": {
+        "name": "Clear audio"
+      },
+      "clear_messages": {
+        "name": "Clear messages"
+      },
+      "clear_props": {
+        "name": "Clear props"
+      },
+      "clear_announcements": {
+        "name": "Clear announcements"
+      },
+      "clear_slide": {
+        "name": "Clear slide"
+      },
+      "clear_media": {
+        "name": "Clear media"
+      },
+      "clear_video_input": {
+        "name": "Clear video input"
+      }
+    }
+  },
+  "services": {
+    "show_message": {
+      "name": "Show message",
+      "description": "Show a ProPresenter message with optional dynamic token values. Use the message UUID or name to identify the message.",
+      "fields": {
+        "message": {
+          "name": "Message UUID or Name",
+          "description": "UUID or name of the message to show (e.g., \"4e677061-f132-4f21-8ddf-84df5cf8a58a\" or \"Child message\")"
+        },
+        "tokens": {
+          "name": "Token values",
+          "description": "Token values as key-value pairs. For example: {\"Name\": \"John Smith\"}"
+        }
+      }
+    }
+  }
+}

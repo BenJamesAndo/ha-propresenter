@@ -1,0 +1,19 @@
+show_message:
+  name: Show message
+  description: Show a ProPresenter message with optional dynamic token values. Use the message UUID or name to identify the message.
+  fields:
+    message:
+      name: Message UUID or Name
+      description: UUID or name of the message to show (e.g., "4e677061-f132-4f21-8ddf-84df5cf8a58a" or "Child message")
+      required: true
+      example: "Child message"
+      selector:
+        text:
+          multiline: false
+    tokens:
+      name: Token values
+      description: 'Token values as key-value pairs. For example, if your message has a "Name" token, enter: {"Name": "John Smith"}'
+      required: false
+      example: '{"Name": "John Smith"}'
+      selector:
+        object:
