@@ -22,9 +22,9 @@ _LOGGER = logging.getLogger(__name__)
 CLEAR_LAYERS = {
     "audio": {"name": "Clear Audio", "icon_active": "mdi:volume-high", "icon_inactive": "mdi:volume-variant-off"},
     "messages": {"name": "Clear Messages", "icon_active": "mdi:message-alert", "icon_inactive": "mdi:message-outline"},
-    "props": {"name": "Clear Props", "icon_active": "mdi:image-multiple", "icon_inactive": "mdi:image-off-outline"},
+    "props": {"name": "Clear Props", "icon_active": "mdi:layers-outline", "icon_inactive": "mdi:layers-off-outline"},
     "announcements": {"name": "Clear Announcements", "icon_active": "mdi:bullhorn-variant", "icon_inactive": "mdi:bullhorn-outline"},
-    "slide": {"name": "Clear Slide", "icon_active": "mdi:presentation", "icon_inactive": "mdi:presentation-play"},
+    "slide": {"name": "Clear Slide", "icon_active": "mdi:text-box-outline", "icon_inactive": "mdi:text-box-remove-outline"},
     "media": {"name": "Clear Media", "icon_active": "mdi:play-box", "icon_inactive": "mdi:play-box-outline"},
     "video_input": {"name": "Clear Video Input", "icon_active": "mdi:video-box", "icon_inactive": "mdi:video-off-outline"},
 }
@@ -98,7 +98,7 @@ class ProPresenterNextSlideButton(ProPresenterButton):
     """Button to trigger the next slide in ProPresenter."""
 
     _attr_translation_key = "next_slide"
-    _attr_icon = "mdi:skip-next"
+    _attr_icon = "mdi:arrow-right"
 
     def __init__(
         self,
@@ -118,7 +118,7 @@ class ProPresenterPreviousSlideButton(ProPresenterButton):
     """Button to trigger the previous slide in ProPresenter."""
 
     _attr_translation_key = "previous_slide"
-    _attr_icon = "mdi:skip-previous"
+    _attr_icon = "mdi:arrow-left"
 
     def __init__(
         self,
