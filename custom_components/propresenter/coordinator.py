@@ -152,7 +152,6 @@ class ProPresenterCoordinator(DataUpdateCoordinator):
             delattr(self, '_cached_media_playlists')
         if hasattr(self, '_cached_media_playlist_details'):
             delattr(self, '_cached_media_playlist_details')
-        _LOGGER.info("Playlist cache invalidated - will refresh on next poll")
 
 
 class ProPresenterStreamingCoordinator(DataUpdateCoordinator):
@@ -334,7 +333,6 @@ class ProPresenterStreamingCoordinator(DataUpdateCoordinator):
         
         while True:
             try:
-                _LOGGER.info("Starting main status stream")
                 # Reset delay on successful connection
                 reconnect_delay = 5
                 
@@ -365,7 +363,6 @@ class ProPresenterStreamingCoordinator(DataUpdateCoordinator):
                     self._handle_status_update
                 )
             except asyncio.CancelledError:
-                _LOGGER.info("Stream task cancelled, shutting down")
                 raise
             except Exception as err:
                 error_msg = str(err) if err else "Connection lost"
