@@ -52,6 +52,7 @@ class ProPresenterMediaPlayer(ProPresenterBaseEntity, MediaPlayerEntity):
     """Media player entity for ProPresenter audio control."""
 
     _attr_name = "Audio Player"
+    _attr_icon = "mdi:music"
     _attr_supported_features = (
         MediaPlayerEntityFeature.PLAY
         | MediaPlayerEntityFeature.PAUSE
@@ -344,6 +345,7 @@ class ProPresenterVideoMediaPlayer(ProPresenterBaseEntity, MediaPlayerEntity):
     """Media player entity for ProPresenter video/media control."""
 
     _attr_name = "Media Player"
+    _attr_icon = "mdi:image-area"
 
     def __init__(
         self,
@@ -768,6 +770,7 @@ class ProPresenterPropMediaPlayer(ProPresenterBaseEntity, MediaPlayerEntity):
     """Media player entity for ProPresenter props control."""
 
     _attr_name = "Props"
+    _attr_icon = "mdi:layers-triple"
     _attr_supported_features = (
         MediaPlayerEntityFeature.SELECT_SOURCE
         | MediaPlayerEntityFeature.TURN_ON
