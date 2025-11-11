@@ -158,9 +158,10 @@ class ProPresenterCoordinator(DataUpdateCoordinator):
 class ProPresenterStreamingCoordinator(DataUpdateCoordinator):
     """Streaming coordinator for frequently changing ProPresenter data."""
 
-    def __init__(self, hass: HomeAssistant, api: ProPresenterAPI) -> None:
+    def __init__(self, hass: HomeAssistant, api: ProPresenterAPI, static_coordinator: ProPresenterCoordinator = None) -> None:
         """Initialize streaming coordinator."""
         self.api = api
+        self.static_coordinator = static_coordinator
         self._stream_task = None
         self._poll_task = None
         self._data = {
@@ -317,6 +318,13 @@ class ProPresenterStreamingCoordinator(DataUpdateCoordinator):
                     self.async_set_updated_data(self._data)
             except Exception as err:
                 _LOGGER.error(f"Error polling active playlist: {err}")
+                # Mark entities as unavailable on connection error
+                self.last_update_success = False
+                self.async_update_listeners()
+                # Also mark static coordinator unavailable
+                if self.static_coordinator:
+                    self.static_coordinator.last_update_success = False
+                    self.static_coordinator.async_update_listeners()
                 await asyncio.sleep(5)
 
     async def _run_stream(self) -> None:
@@ -366,6 +374,14 @@ class ProPresenterStreamingCoordinator(DataUpdateCoordinator):
                     error_msg,
                     reconnect_delay
                 )
+                # Mark entities as unavailable
+                self.last_update_success = False
+                self.async_update_listeners()
+                # Also mark static coordinator unavailable
+                if self.static_coordinator:
+                    self.static_coordinator.last_update_success = False
+                    self.static_coordinator.async_update_listeners()
+                
                 await asyncio.sleep(reconnect_delay)
                 
                 # Exponential backoff for reconnection attempts
