@@ -31,24 +31,15 @@ async def async_setup_entry(
     coordinator: ProPresenterCoordinator = config_entry.runtime_data["coordinator"]
     streaming_coordinator: ProPresenterStreamingCoordinator = config_entry.runtime_data["streaming_coordinator"]
     
-    _LOGGER.debug("Setting up ProPresenter select entities")
-    _LOGGER.debug("Streaming coordinator data keys: %s", streaming_coordinator.data.keys() if streaming_coordinator.data else "No data")
-    
     # Get stage screens from streaming coordinator data
     stage_screens = streaming_coordinator.data.get("stage_screens", [])
     stage_layouts = streaming_coordinator.data.get("stage_layouts", [])
-    
-    _LOGGER.debug("Found %d stage screens", len(stage_screens))
-    _LOGGER.debug("Stage screens data: %s", stage_screens)
-    _LOGGER.debug("Found %d stage layouts", len(stage_layouts))
     
     # Create a select entity for each stage screen
     entities = []
     for screen in stage_screens:
         # ProPresenter uses 'uuid' not 'id' for stage screens
         screen_id = screen.get("uuid") or screen.get("id")
-        screen_name = screen.get("name", "Unknown")
-        _LOGGER.debug("Processing screen: %s (ID: %s)", screen_name, screen_id)
         if screen_id:
             entities.append(
                 ProPresenterStageLayoutSelect(coordinator, streaming_coordinator, config_entry, screen_id)
@@ -59,22 +50,18 @@ async def async_setup_entry(
     # Create a select entity for looks (from streaming coordinator)
     looks = streaming_coordinator.data.get("looks", [])
     if looks:
-        _LOGGER.debug("Found %d looks", len(looks))
         entities.append(ProPresenterLookSelect(coordinator, streaming_coordinator, config_entry))
     
     # Create a select entity for macros
     macros = coordinator.data.get("macros", [])
     if macros:
-        _LOGGER.debug("Found %d macros", len(macros))
         entities.append(ProPresenterMacroSelect(coordinator, config_entry))
     
     # Create a select entity for video inputs
     video_inputs = coordinator.data.get("video_inputs", [])
     if video_inputs:
-        _LOGGER.debug("Found %d video inputs", len(video_inputs))
         entities.append(ProPresenterVideoInputSelect(coordinator, streaming_coordinator, config_entry))
     
-    _LOGGER.info("Creating %d select entities", len(entities))
     if entities:
         async_add_entities(entities)
     else:
@@ -283,7 +270,6 @@ class ProPresenterPropSelect(ProPresenterBaseEntity, SelectEntity):
         """Trigger the selected prop."""
         if option == "None":
             # Clear all props
-            _LOGGER.debug("Clearing all props")
             await self.api.trigger_clear_layer("props")
         else:
             # Look up the UUID from our map
@@ -292,8 +278,6 @@ class ProPresenterPropSelect(ProPresenterBaseEntity, SelectEntity):
             if not selected_prop_uuid:
                 _LOGGER.error("Could not find prop UUID for: %s", option)
                 return
-            
-            _LOGGER.debug("Triggering prop %s (UUID: %s)", option, selected_prop_uuid)
             
             # Trigger the prop
             await self.api.trigger_prop(selected_prop_uuid)
@@ -486,8 +470,6 @@ class ProPresenterLookSelect(ProPresenterBaseEntity, SelectEntity):
                 self._pending_look = None
                 return
             
-            _LOGGER.debug("Triggering look %s (UUID: %s)", option, look_uuid)
-            
             try:
                 # Trigger the look
                 await self.api.trigger_look(look_uuid)
@@ -578,7 +560,6 @@ class ProPresenterMacroSelect(ProPresenterBaseEntity, SelectEntity):
             if macro_uuid:
                 # Trigger the macro
                 await self.api.trigger_macro(macro_uuid)
-                _LOGGER.debug("Macro '%s' (UUID: %s) triggered successfully", option, macro_uuid)
             else:
                 _LOGGER.error("Could not find UUID for macro: %s", option)
             
@@ -670,7 +651,6 @@ class ProPresenterVideoInputSelect(ProPresenterBaseEntity, SelectEntity):
             if selected_uuid:
                 # Trigger the video input
                 await self.api.trigger_video_input(selected_uuid)
-                _LOGGER.info("Video input '%s' triggered successfully", option)
                 
                 # Reset to "Select Video Input" after triggering
                 await asyncio.sleep(0.5)  # Brief delay so user sees selection
