@@ -25,7 +25,6 @@ PLATFORMS: list[Platform] = [
      Platform.BUTTON,
      Platform.IMAGE,
      Platform.MEDIA_PLAYER,
-     Platform.NUMBER,
      Platform.SELECT,
      Platform.SWITCH,
      Platform.TEXT,
@@ -46,7 +45,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         raise ConfigEntryNotReady("Failed to connect to ProPresenter")
     
     # Initialize the streaming coordinator for dynamic presentation data
-    streaming_coordinator = ProPresenterStreamingCoordinator(hass, coordinator.api)
+    streaming_coordinator = ProPresenterStreamingCoordinator(hass, coordinator.api, coordinator)
     await streaming_coordinator.async_config_entry_first_refresh()
     
     # Store all coordinators in config entry runtime data
