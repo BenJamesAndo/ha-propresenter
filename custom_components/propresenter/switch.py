@@ -73,7 +73,7 @@ async def async_setup_entry(
 class ProPresenterMessageSwitch(ProPresenterBaseEntity, SwitchEntity):
     """Switch entity for ProPresenter message."""
 
-    _attr_icon = "mdi:message-text"
+    _attr_icon = "mdi:send"
 
     def __init__(
         self,
@@ -167,7 +167,6 @@ class ProPresenterMessageSwitch(ProPresenterBaseEntity, SwitchEntity):
 class ProPresenterAudienceScreenSwitch(ProPresenterBaseEntity, SwitchEntity):
     """Switch entity for ProPresenter audience screens."""
 
-    _attr_icon = "mdi:monitor-multiple"
     _attr_name = "Audience Screens"
 
     def __init__(
@@ -180,6 +179,11 @@ class ProPresenterAudienceScreenSwitch(ProPresenterBaseEntity, SwitchEntity):
         super().__init__(streaming_coordinator, config_entry, static_coordinator=coordinator)
         self._attr_unique_id = f"{config_entry.entry_id}_audience_screens"
         self.api = coordinator.api  # Store API reference for actions
+
+    @property
+    def icon(self) -> str:
+        """Return the icon based on state."""
+        return "mdi:checkbox-blank-circle" if self.is_on else "mdi:checkbox-blank-circle-outline"
 
     @property
     def is_on(self) -> bool:
@@ -206,7 +210,6 @@ class ProPresenterAudienceScreenSwitch(ProPresenterBaseEntity, SwitchEntity):
 class ProPresenterStageScreenSwitch(ProPresenterBaseEntity, SwitchEntity):
     """Switch entity for ProPresenter stage screens."""
 
-    _attr_icon = "mdi:monitor"
     _attr_name = "Stage Screens"
 
     def __init__(
@@ -219,6 +222,11 @@ class ProPresenterStageScreenSwitch(ProPresenterBaseEntity, SwitchEntity):
         super().__init__(streaming_coordinator, config_entry, static_coordinator=coordinator)
         self._attr_unique_id = f"{config_entry.entry_id}_stage_screens"
         self.api = coordinator.api  # Store API reference for actions
+
+    @property
+    def icon(self) -> str:
+        """Return the icon based on state."""
+        return "mdi:checkbox-blank-circle" if self.is_on else "mdi:checkbox-blank-circle-outline"
 
     @property
     def is_on(self) -> bool:
@@ -245,7 +253,7 @@ class ProPresenterStageScreenSwitch(ProPresenterBaseEntity, SwitchEntity):
 class ProPresenterStageMessageSwitch(ProPresenterBaseEntity, SwitchEntity):
     """Switch entity for ProPresenter stage message visibility."""
 
-    _attr_icon = "mdi:monitor-speaker"
+    _attr_icon = "mdi:send-circle"
     _attr_name = "Stage Message"
 
     def __init__(
@@ -310,6 +318,7 @@ class ProPresenterCaptureSwitch(ProPresenterBaseEntity, SwitchEntity):
     """Switch entity for ProPresenter capture control."""
 
     _attr_name = "Capture"
+    _attr_icon = "mdi:access-point"
 
     def __init__(
         self,
@@ -331,11 +340,6 @@ class ProPresenterCaptureSwitch(ProPresenterBaseEntity, SwitchEntity):
             self._capture_settings = await self.api.get_capture_settings() or {}
         except Exception:
             pass  # Settings will be fetched on demand if needed
-
-    @property
-    def icon(self) -> str:
-        """Return the icon based on state."""
-        return "mdi:broadcast" if self.is_on else "mdi:broadcast-off"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
