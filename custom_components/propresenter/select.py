@@ -71,6 +71,7 @@ class ProPresenterStageLayoutSelect(ProPresenterBaseEntity, SelectEntity):
     """Select entity for choosing stage layout on a specific screen."""
 
     _attr_translation_key = "stage_layout"
+    _attr_icon = "mdi:contacts"
 
     def __init__(
         self,
@@ -407,6 +408,7 @@ class ProPresenterLookSelect(ProPresenterBaseEntity, SelectEntity):
 
     _attr_translation_key = "look"
     _attr_name = "Look"
+    _attr_icon = "mdi:glasses"
 
     def __init__(
         self,
@@ -488,7 +490,7 @@ class ProPresenterLookSelect(ProPresenterBaseEntity, SelectEntity):
 class ProPresenterMacroSelect(ProPresenterBaseEntity, SelectEntity):
     """Select entity for triggering macros."""
 
-    _attr_icon = "mdi:script-text-outline"
+    _attr_icon = "mdi:alpha-m-box-outline"
     _attr_name = "Trigger Macro"
 
     def __init__(
@@ -583,7 +585,7 @@ class ProPresenterVideoInputSelect(ProPresenterBaseEntity, SelectEntity):
     is currently active, so this entity cannot display the current selection.
     """
 
-    _attr_icon = "mdi:video-input-hdmi"
+    _attr_icon = "mdi:message-video"
     _attr_name = "Trigger Video Input"
 
     def __init__(
