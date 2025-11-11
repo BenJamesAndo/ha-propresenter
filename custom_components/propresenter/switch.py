@@ -51,7 +51,6 @@ async def async_setup_entry(
         
         # Skip "Countdown to Time" timers as they're clock-based, not duration-based
         if timer.get("count_down_to_time"):
-            _LOGGER.debug(f"Skipping 'Countdown to Time' timer: {timer_name}")
             continue
         
         if timer_uuid and timer_name:
@@ -61,7 +60,6 @@ async def async_setup_entry(
     
     # Create a switch for each message
     messages = streaming_coordinator.data.get("messages", [])
-    _LOGGER.debug(f"Found {len(messages)} messages for switches")
     for message in messages:
         message_data = message.get("id", {})
         message_uuid = message_data.get("uuid")
@@ -113,8 +111,6 @@ class ProPresenterMessageSwitch(ProPresenterBaseEntity, SwitchEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the switch (show the message)."""
         try:
-            _LOGGER.debug("Turning on message switch: %s (UUID: %s)", self._message_name, self._message_uuid)
-            
             # Gather token values from Home Assistant text entities
             tokens = {}
             
@@ -149,15 +145,12 @@ class ProPresenterMessageSwitch(ProPresenterBaseEntity, SwitchEntity):
                 CONF_REQUIRES_CONFIRMATION, DEFAULT_REQUIRES_CONFIRMATION
             )
             
-            _LOGGER.debug("Showing message with tokens: %s, requires_confirmation: %s", tokens, requires_confirmation)
-            
             # Show message with token values from HA text entities and requires_confirmation setting
             await self.api.show_message(
                 self._message_uuid,
                 tokens if tokens else None,
                 requires_confirmation=requires_confirmation
             )
-            _LOGGER.debug("Message shown successfully")
             # No need to refresh - streaming will update automatically
         except Exception as err:
             _LOGGER.error("Error showing message %s: %s", self._message_name, err, exc_info=True)
@@ -165,9 +158,7 @@ class ProPresenterMessageSwitch(ProPresenterBaseEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the switch (hide the message)."""
         try:
-            _LOGGER.debug("Turning off message switch: %s (UUID: %s)", self._message_name, self._message_uuid)
             await self.api.hide_message(self._message_uuid)
-            _LOGGER.debug("Message hidden successfully")
             # No need to refresh - streaming will update automatically
         except Exception as err:
             _LOGGER.error("Error hiding message %s: %s", self._message_name, err, exc_info=True)
@@ -198,9 +189,7 @@ class ProPresenterAudienceScreenSwitch(ProPresenterBaseEntity, SwitchEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the switch (enable audience screens)."""
         try:
-            _LOGGER.debug("Enabling audience screens")
             await self.api.set_audience_screens_status(True)
-            _LOGGER.debug("Audience screens enabled successfully")
             # No need to refresh - streaming will update automatically
         except Exception as err:
             _LOGGER.error("Error enabling audience screens: %s", err, exc_info=True)
@@ -208,9 +197,7 @@ class ProPresenterAudienceScreenSwitch(ProPresenterBaseEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the switch (disable audience screens)."""
         try:
-            _LOGGER.debug("Disabling audience screens")
             await self.api.set_audience_screens_status(False)
-            _LOGGER.debug("Audience screens disabled successfully")
             # No need to refresh - streaming will update automatically
         except Exception as err:
             _LOGGER.error("Error disabling audience screens: %s", err, exc_info=True)
@@ -241,9 +228,7 @@ class ProPresenterStageScreenSwitch(ProPresenterBaseEntity, SwitchEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the switch (enable stage screens)."""
         try:
-            _LOGGER.debug("Enabling stage screens")
             await self.api.set_stage_screens_status(True)
-            _LOGGER.debug("Stage screens enabled successfully")
             # No need to refresh - streaming will update automatically
         except Exception as err:
             _LOGGER.error("Error enabling stage screens: %s", err, exc_info=True)
@@ -251,9 +236,7 @@ class ProPresenterStageScreenSwitch(ProPresenterBaseEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the switch (disable stage screens)."""
         try:
-            _LOGGER.debug("Disabling stage screens")
             await self.api.set_stage_screens_status(False)
-            _LOGGER.debug("Stage screens disabled successfully")
             # No need to refresh - streaming will update automatically
         except Exception as err:
             _LOGGER.error("Error disabling stage screens: %s", err, exc_info=True)
@@ -292,8 +275,6 @@ class ProPresenterStageMessageSwitch(ProPresenterBaseEntity, SwitchEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the switch (show the stage message with current text)."""
         try:
-            _LOGGER.debug("Showing stage message")
-            
             # Get the current message text from the text entity
             from homeassistant.helpers import entity_registry as er
             registry = er.async_get(self.hass)
@@ -312,7 +293,6 @@ class ProPresenterStageMessageSwitch(ProPresenterBaseEntity, SwitchEntity):
             
             # Show the message (even if empty - ProPresenter will handle it)
             await self.api.set_stage_message(stage_message_text)
-            _LOGGER.debug("Stage message shown with text: %s", stage_message_text)
             # No need to refresh - streaming will update automatically
         except Exception as err:
             _LOGGER.error("Error showing stage message: %s", err, exc_info=True)
@@ -320,9 +300,7 @@ class ProPresenterStageMessageSwitch(ProPresenterBaseEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the switch (hide the stage message)."""
         try:
-            _LOGGER.debug("Hiding stage message")
             await self.api.clear_stage_message()
-            _LOGGER.debug("Stage message hidden successfully")
             # No need to refresh - streaming will update automatically
         except Exception as err:
             _LOGGER.error("Error hiding stage message: %s", err, exc_info=True)
@@ -351,8 +329,8 @@ class ProPresenterCaptureSwitch(ProPresenterBaseEntity, SwitchEntity):
         # Fetch initial capture settings (settings don't stream, only status does)
         try:
             self._capture_settings = await self.api.get_capture_settings() or {}
-        except Exception as err:
-            _LOGGER.debug("Could not fetch initial capture settings: %s", err)
+        except Exception:
+            pass  # Settings will be fetched on demand if needed
 
     @property
     def icon(self) -> str:
@@ -394,7 +372,6 @@ class ProPresenterCaptureSwitch(ProPresenterBaseEntity, SwitchEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the switch (start capture)."""
         try:
-            _LOGGER.debug("Starting capture")
             await self.api.capture_operation("start")
             # State will update via streaming coordinator
         except Exception as err:
@@ -403,7 +380,6 @@ class ProPresenterCaptureSwitch(ProPresenterBaseEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the switch (stop capture)."""
         try:
-            _LOGGER.debug("Stopping capture")
             await self.api.capture_operation("stop")
             # State will update via streaming coordinator
         except Exception as err:
@@ -610,7 +586,6 @@ class ProPresenterTimerSwitch(ProPresenterBaseEntity, SwitchEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the switch (start timer)."""
         try:
-            _LOGGER.debug("Starting timer %s", self._timer_name)
             await self.api.timer_operation(self._timer_uuid, "start")
             # State will update via streaming coordinator
         except Exception as err:
@@ -619,7 +594,6 @@ class ProPresenterTimerSwitch(ProPresenterBaseEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the switch (stop timer)."""
         try:
-            _LOGGER.debug("Stopping timer %s", self._timer_name)
             await self.api.timer_operation(self._timer_uuid, "stop")
             # State will update via streaming coordinator
         except Exception as err:
