@@ -23,6 +23,7 @@ class ProPresenterCoordinator(DataUpdateCoordinator):
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
         """Initialize coordinator."""
         self.config_entry = config_entry
+        self.streaming_coordinator = None  # Set later by streaming coordinator
         
         # Get configuration values
         host = config_entry.data[CONF_HOST]
@@ -117,7 +118,7 @@ class ProPresenterCoordinator(DataUpdateCoordinator):
             # Fetch video inputs
             video_inputs = await self.api.get_video_inputs() or []
             
-            return {
+            data = {
                 "version": version_info,
                 "clear_groups": clear_groups,
                 "macros": macros,
@@ -131,6 +132,9 @@ class ProPresenterCoordinator(DataUpdateCoordinator):
                 "media_playlists": self._cached_media_playlists,
                 "media_playlist_details_list": self._cached_media_playlist_details,
             }
+            # Cache the successful data
+            self._data = data
+            return data
         except ProPresenterConnectionError as err:
             raise UpdateFailed(f"Error communicating with ProPresenter: {err}") from err
 
@@ -152,17 +156,24 @@ class ProPresenterCoordinator(DataUpdateCoordinator):
             delattr(self, '_cached_media_playlists')
         if hasattr(self, '_cached_media_playlist_details'):
             delattr(self, '_cached_media_playlist_details')
-        _LOGGER.info("Playlist cache invalidated - will refresh on next poll")
 
 
 class ProPresenterStreamingCoordinator(DataUpdateCoordinator):
     """Streaming coordinator for frequently changing ProPresenter data."""
 
-    def __init__(self, hass: HomeAssistant, api: ProPresenterAPI) -> None:
+    def __init__(self, hass: HomeAssistant, api: ProPresenterAPI, static_coordinator: ProPresenterCoordinator = None) -> None:
         """Initialize streaming coordinator."""
+        self.hass = hass
         self.api = api
+        self.static_coordinator = static_coordinator
         self._stream_task = None
         self._poll_task = None
+        self.connected = False  # Track connection state globally
+        
+        # Set reference back to static coordinator
+        if static_coordinator:
+            static_coordinator.streaming_coordinator = self
+        
         self._data = {
             "active_presentation": {},
             "stage_screens": [],
@@ -305,18 +316,17 @@ class ProPresenterStreamingCoordinator(DataUpdateCoordinator):
         self._poll_task = asyncio.create_task(self._poll_active_playlist())
     
     async def _poll_active_playlist(self) -> None:
-        """Poll for active media playlist changes (not available in streaming)."""
+        """Poll for active media playlist changes"""
         while True:
             try:
                 await asyncio.sleep(2)  # Poll every 2 seconds
                 active_media = await self.api.get_active_media_playlist() or {}
                 
-                # Only update if it changed (no logging for performance)
+                # Only update if it changed
                 if active_media != self._data.get("active_media_playlist"):
                     self._data["active_media_playlist"] = active_media
                     self.async_set_updated_data(self._data)
-            except Exception as err:
-                _LOGGER.error(f"Error polling active playlist: {err}")
+            except Exception:
                 await asyncio.sleep(5)
 
     async def _run_stream(self) -> None:
@@ -326,7 +336,6 @@ class ProPresenterStreamingCoordinator(DataUpdateCoordinator):
         
         while True:
             try:
-                _LOGGER.info("Starting main status stream")
                 # Reset delay on successful connection
                 reconnect_delay = 5
                 
@@ -356,8 +365,11 @@ class ProPresenterStreamingCoordinator(DataUpdateCoordinator):
                     ],
                     self._handle_status_update
                 )
+                # If we get here, stream connected successfully
+                self.connected = True
+                self.last_update_success = True
+                self.async_update_listeners()
             except asyncio.CancelledError:
-                _LOGGER.info("Stream task cancelled, shutting down")
                 raise
             except Exception as err:
                 error_msg = str(err) if err else "Connection lost"
@@ -366,6 +378,15 @@ class ProPresenterStreamingCoordinator(DataUpdateCoordinator):
                     error_msg,
                     reconnect_delay
                 )
+                # Mark entities as unavailable when disconnected
+                self.connected = False
+                self.last_update_success = False
+                self.async_update_listeners()
+                # Also mark static coordinator unavailable
+                if self.static_coordinator:
+                    self.static_coordinator.last_update_success = False
+                    self.static_coordinator.async_update_listeners()
+                
                 await asyncio.sleep(reconnect_delay)
                 
                 # Exponential backoff for reconnection attempts
