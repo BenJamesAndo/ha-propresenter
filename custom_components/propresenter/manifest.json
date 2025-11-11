@@ -8,5 +8,5 @@
   "issue_tracker": "https://github.com/BenJamesAndo/ha-propresenter/issues",
   "iot_class": "local_polling",
   "requirements": ["aiohttp>=3.8.0", "Pillow>=10.0.0"],
-  "version": "0.0.1"
+  "version": "0.0.2"
 }
