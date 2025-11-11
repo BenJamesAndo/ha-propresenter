@@ -66,7 +66,7 @@ class ProPresenterMessageTokenText(ProPresenterBaseEntity, TextEntity):
 
     _attr_native_max = 255  # Max length for text input
     _attr_mode = "text"  # Single-line text input
-
+    _attr_icon = "mdi:message-text"
     def __init__(
         self,
         static_coordinator: ProPresenterCoordinator,
@@ -132,7 +132,7 @@ class ProPresenterStageMessageText(ProPresenterBaseEntity, TextEntity):
 
     _attr_native_max = 255  # Standard text input max
     _attr_mode = "text"  # Single-line text input
-    _attr_icon = "mdi:monitor-speaker"
+    _attr_icon = "mdi:message-text-outline"
     _attr_name = "Stage Message"
 
     def __init__(
