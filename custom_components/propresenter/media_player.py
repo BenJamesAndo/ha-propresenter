@@ -88,9 +88,6 @@ class ProPresenterMediaPlayer(ProPresenterBaseEntity, MediaPlayerEntity):
         current_active_source = self.source
         
         if current_active_source:
-            # Save whatever is currently playing/loaded
-            if current_active_source != self._last_selected_source:
-                _LOGGER.debug(f"Audio track changed to: {current_active_source}")
             self._last_selected_source = current_active_source
         
         self._previous_active_source = current_active_source
@@ -100,6 +97,33 @@ class ProPresenterMediaPlayer(ProPresenterBaseEntity, MediaPlayerEntity):
         """Handle updated data from the streaming coordinator (fast audio transport updates)."""
         # Update the timestamp when streaming coordinator provides new data
         self._position_updated_at = dt_util.utcnow()
+        
+        # Check if an unknown audio track is playing and clear cache if needed
+        audio_transport_state = self.streaming_coordinator.data.get("audio_transport_state", {})
+        media_name = audio_transport_state.get("name")
+        
+        if media_name:
+            # Check if this audio track exists in our cached audio list
+            audio_playlist_details_list = self.coordinator.data.get("audio_playlist_details_list", [])
+            track_found = False
+            
+            for playlist_details in audio_playlist_details_list:
+                items = playlist_details.get("items", [])
+                for item in items:
+                    if item.get("type") == "audio":
+                        track_name = get_nested_value(item, "id", "name", default="")
+                        if track_name == media_name:
+                            track_found = True
+                            break
+                if track_found:
+                    break
+            
+            # If audio is playing but not in our cache, clear the cache to refresh
+            if not track_found:
+                _LOGGER.info(f"Unknown audio track '{media_name}' detected - refreshing audio cache")
+                self.coordinator.invalidate_playlist_cache()
+                # Trigger a coordinator refresh to reload audio playlists
+                self.hass.async_create_task(self.coordinator.async_request_refresh())
         
         # Only write state if entity is added to hass
         if self.hass is not None:
@@ -223,36 +247,30 @@ class ProPresenterMediaPlayer(ProPresenterBaseEntity, MediaPlayerEntity):
 
     async def async_media_play(self) -> None:
         """Send play command."""
-        _LOGGER.debug("Media player: play")
         await self.coordinator.api.audio_play()
         # Streaming will update state automatically
 
     async def async_media_pause(self) -> None:
         """Send pause command."""
-        _LOGGER.debug("Media player: pause")
         await self.coordinator.api.audio_pause()
         # Streaming will update state automatically
 
     async def async_media_seek(self, position: float) -> None:
         """Seek to position in seconds."""
-        _LOGGER.debug(f"Media player: seek to {position} seconds")
         await self.coordinator.api.audio_seek(position)
 
     async def async_media_next_track(self) -> None:
         """Send next track command."""
-        _LOGGER.debug("Media player: next track")
         await self.coordinator.api.audio_next()
         # Streaming will update state automatically
 
     async def async_media_previous_track(self) -> None:
         """Send previous track command."""
-        _LOGGER.debug("Media player: previous track")
         await self.coordinator.api.audio_previous()
         # Streaming will update state automatically
 
     async def async_select_source(self, source: str) -> None:
         """Select audio track to play."""
-        _LOGGER.debug(f"Media player: select source - {source}")
         
         audio_playlist_details_list = self.coordinator.data.get("audio_playlist_details_list", [])
         
@@ -498,8 +516,14 @@ class ProPresenterVideoMediaPlayer(ProPresenterBaseEntity, MediaPlayerEntity):
         Returns:
             Tuple of (presentation_uuid, slide_index) or (None, None) if not available.
         """
-        slide_index_data = self.streaming_coordinator.data.get("slide_index", {})
-        pres_index = slide_index_data.get("presentation_index", {})
+        slide_index_data = self.streaming_coordinator.data.get("slide_index")
+        if not slide_index_data:
+            return None, None
+        
+        pres_index = slide_index_data.get("presentation_index")
+        if not pres_index:
+            return None, None
+        
         pres_id = pres_index.get("presentation_id", {})
         pres_uuid = pres_id.get("uuid")
         slide_index = pres_index.get("index")
