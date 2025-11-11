@@ -120,7 +120,6 @@ class ProPresenterMediaPlayer(ProPresenterBaseEntity, MediaPlayerEntity):
             
             # If audio is playing but not in our cache, clear the cache to refresh
             if not track_found:
-                _LOGGER.info(f"Unknown audio track '{media_name}' detected - refreshing audio cache")
                 self.coordinator.invalidate_playlist_cache()
                 # Trigger a coordinator refresh to reload audio playlists
                 self.hass.async_create_task(self.coordinator.async_request_refresh())
@@ -317,7 +316,6 @@ class ProPresenterMediaPlayer(ProPresenterBaseEntity, MediaPlayerEntity):
             _LOGGER.error(f"Could not find track: {source}")
             return
         
-        _LOGGER.debug(f"Triggering audio track: {source} (playlist: {playlist_uuid}, track: {track_uuid})")
         await self.coordinator.api.trigger_audio_track(playlist_uuid, track_uuid)
     
     async def async_turn_on(self) -> None:
@@ -336,7 +334,6 @@ class ProPresenterMediaPlayer(ProPresenterBaseEntity, MediaPlayerEntity):
         current_source = self.source
         if current_source:
             self._last_selected_source = current_source
-            _LOGGER.debug("Tracking audio: %s", current_source)
         
         # Pause and clear
         await self.async_media_pause()
@@ -403,8 +400,6 @@ class ProPresenterVideoMediaPlayer(ProPresenterBaseEntity, MediaPlayerEntity):
         
         if current_active_source:
             # Save whatever is currently playing/loaded
-            if current_active_source != self._last_selected_source:
-                _LOGGER.debug(f"Media changed to: {current_active_source}")
             self._last_selected_source = current_active_source
         
         self._previous_active_source = current_active_source
@@ -428,14 +423,10 @@ class ProPresenterVideoMediaPlayer(ProPresenterBaseEntity, MediaPlayerEntity):
             if self._previous_media_layer_state is False:
                 current_slide_info = self._get_current_slide_info()
                 self._media_action_slide_info = current_slide_info
-                _LOGGER.debug(f"Media Action started from slide: {current_slide_info}")
-            elif self._previous_media_layer_state is None:
-                _LOGGER.debug("Media Action already playing on first update - not capturing slide")
         else:
             # Media stopped or switched to playlist media - clear the saved slide info
             if self._media_action_slide_info != (None, None):
-                _LOGGER.debug("Media Action ended, clearing saved slide info")
-            self._media_action_slide_info = (None, None)
+                self._media_action_slide_info = (None, None)
         
         # Remember current media layer state for next update
         self._previous_media_layer_state = is_media_action_active
@@ -650,17 +641,14 @@ class ProPresenterVideoMediaPlayer(ProPresenterBaseEntity, MediaPlayerEntity):
                     
                     # Check cache
                     if cache_key == self._cached_thumbnail_uuid and self._cached_thumbnail:
-                        _LOGGER.debug(f"Using cached slide thumbnail for {cache_key}")
                         return self._cached_thumbnail, "image/jpeg"
                     
                     # Fetch slide thumbnail
-                    _LOGGER.debug(f"Fetching thumbnail for presentation {pres_uuid} slide {slide_index}")
                     thumbnail_data = await self.coordinator.api.get_presentation_thumbnail(
                         pres_uuid, slide_index, quality=400
                     )
                     
                     if thumbnail_data:
-                        _LOGGER.debug(f"Successfully fetched slide thumbnail: {len(thumbnail_data)} bytes")
                         self._cached_thumbnail = thumbnail_data
                         self._cached_thumbnail_uuid = cache_key
                         return thumbnail_data, "image/jpeg"
@@ -668,20 +656,16 @@ class ProPresenterVideoMediaPlayer(ProPresenterBaseEntity, MediaPlayerEntity):
                 return None, None
             
             if not media_uuid:
-                _LOGGER.debug("No media UUID available for thumbnail")
                 return None, None
             
             # Check if we already have this thumbnail cached
             if media_uuid == self._cached_thumbnail_uuid and self._cached_thumbnail:
-                _LOGGER.debug(f"Using cached thumbnail for {media_uuid}")
                 return self._cached_thumbnail, "image/jpeg"
             
             # Fetch new thumbnail
-            _LOGGER.debug(f"Fetching thumbnail for media UUID: {media_uuid}")
             thumbnail_data = await self.coordinator.api.get_media_thumbnail(media_uuid, quality=400)
             
             if thumbnail_data:
-                _LOGGER.debug(f"Successfully fetched thumbnail: {len(thumbnail_data)} bytes")
                 self._cached_thumbnail = thumbnail_data
                 self._cached_thumbnail_uuid = media_uuid
                 return thumbnail_data, "image/jpeg"
@@ -757,7 +741,6 @@ class ProPresenterVideoMediaPlayer(ProPresenterBaseEntity, MediaPlayerEntity):
             _LOGGER.error(f"Could not find media item: {source}")
             return
         
-        _LOGGER.debug(f"Triggering media item: {source} (playlist: {playlist_uuid}, item: {item_uuid})")
         await self.coordinator.api.trigger_media_item(playlist_uuid, item_uuid)
     
     async def async_turn_on(self) -> None:
@@ -776,7 +759,6 @@ class ProPresenterVideoMediaPlayer(ProPresenterBaseEntity, MediaPlayerEntity):
         current_source = self.source
         if current_source:
             self._last_selected_source = current_source
-            _LOGGER.debug("Tracking media: %s", current_source)
         
         # Clear the media layer
         await self.coordinator.api.trigger_clear_layer("media")
@@ -811,9 +793,7 @@ class ProPresenterPropMediaPlayer(ProPresenterBaseEntity, MediaPlayerEntity):
         current_active_prop = self.source
         
         if current_active_prop:
-            # Save whatever prop is currently active
-            if current_active_prop != self._last_selected_prop:
-                _LOGGER.debug(f"Prop changed to: {current_active_prop}")
+            # Save whatever is currently active
             self._last_selected_prop = current_active_prop
         
         self._previous_active_prop = current_active_prop
@@ -917,7 +897,7 @@ class ProPresenterPropMediaPlayer(ProPresenterBaseEntity, MediaPlayerEntity):
     
     async def async_turn_on(self) -> None:
         """Turn on - does nothing."""
-        _LOGGER.debug("Props media player turn_on does nothing")
+        pass
     
     async def async_turn_off(self) -> None:
         """Turn off - clear all props."""
@@ -925,9 +905,7 @@ class ProPresenterPropMediaPlayer(ProPresenterBaseEntity, MediaPlayerEntity):
         current_prop = self.source
         if current_prop:
             self._last_selected_prop = current_prop
-            _LOGGER.debug("Tracking prop: %s", current_prop)
         
-        _LOGGER.debug("Clearing all props")
         await self.static_coordinator.api.trigger_clear_layer("props")
     
     async def async_select_source(self, source: str) -> None:
