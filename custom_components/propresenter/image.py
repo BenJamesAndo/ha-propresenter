@@ -107,7 +107,7 @@ class SlideNotesMixin:
 class ProPresenterPresentationThumbnail(SlideNotesMixin, ProPresenterBaseEntity, ImageEntity):
     """Image entity showing the current presentation slide thumbnail."""
 
-    _attr_name = "Presentation Thumbnail"
+    _attr_name = "Presentation Current Slide"
     _attr_icon = "mdi:presentation"
 
     def __init__(
