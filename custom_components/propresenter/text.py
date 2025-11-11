@@ -26,15 +26,11 @@ async def async_setup_entry(
     coordinator: ProPresenterCoordinator = config_entry.runtime_data["coordinator"]
     streaming_coordinator: ProPresenterStreamingCoordinator = config_entry.runtime_data["streaming_coordinator"]
     
-    _LOGGER.debug("Setting up ProPresenter text entities")
-    
     # Add stage message text entity
     entities = [ProPresenterStageMessageText(coordinator, streaming_coordinator, config_entry)]
     
     # Get messages from streaming coordinator data
     messages = streaming_coordinator.data.get("messages", [])
-    
-    _LOGGER.debug("Found %d messages", len(messages))
     
     # Create a text entity for each message token
     for message in messages:
@@ -45,14 +41,11 @@ async def async_setup_entry(
         # Get the tokens for this message
         tokens = message.get("tokens", [])
         
-        _LOGGER.debug("Message '%s' has %d tokens", message_name, len(tokens))
-        
         for token in tokens:
             token_name = token.get("name")
             token_uuid = token.get("uuid")
             
             if message_uuid and token_name and token_uuid:
-                _LOGGER.debug("Creating text entity for token '%s' in message '%s'", token_name, message_name)
                 entities.append(
                     ProPresenterMessageTokenText(
                         coordinator,
@@ -65,7 +58,6 @@ async def async_setup_entry(
                     )
                 )
     
-    _LOGGER.info("Creating %d text entities (%d message tokens + 1 stage message)", len(entities), len(entities) - 1)
     async_add_entities(entities)
 
 
@@ -129,13 +121,6 @@ class ProPresenterMessageTokenText(ProPresenterBaseEntity, TextEntity):
 
     async def async_set_value(self, value: str) -> None:
         """Update the token value."""
-        _LOGGER.debug(
-            "Setting token '%s' in message '%s' to: %s",
-            self._token_name,
-            self._message_name,
-            value,
-        )
-        
         # Store the value locally - it will be used when triggering the message
         # This takes priority over ProPresenter's stored value
         self._local_value = value
@@ -189,8 +174,6 @@ class ProPresenterStageMessageText(ProPresenterBaseEntity, TextEntity):
     async def async_set_value(self, value: str) -> None:
         """Set the stage message text."""
         try:
-            _LOGGER.debug("Updating stage message text to: %s", value)
-            
             # Always store the value locally
             self._local_text = value
             
@@ -203,11 +186,9 @@ class ProPresenterStageMessageText(ProPresenterBaseEntity, TextEntity):
             if is_currently_shown:
                 # Message is visible, update it in real-time
                 await self.api.set_stage_message(value)
-                _LOGGER.debug("Stage message updated in ProPresenter (was visible)")
             else:
                 # Message is hidden, just update local storage
                 # It will be sent when the switch is turned on
-                _LOGGER.debug("Stage message text stored locally (not visible yet)")
                 self.async_write_ha_state()  # Update the UI
             
             # No need to refresh coordinator - streaming will update automatically
