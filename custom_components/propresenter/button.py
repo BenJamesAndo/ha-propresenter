@@ -21,7 +21,7 @@ _LOGGER = logging.getLogger(__name__)
 # Define available clear layers with icons for active/inactive states
 CLEAR_LAYERS = {
     "audio": {"name": "Clear Audio", "icon_active": "mdi:volume-high", "icon_inactive": "mdi:volume-variant-off"},
-    "messages": {"name": "Clear Messages", "icon_active": "mdi:message-alert", "icon_inactive": "mdi:message-outline"},
+    "messages": {"name": "Clear Messages", "icon_active": "mdi:send-circle", "icon_inactive": "mdi:send-circle-outline"},
     "props": {"name": "Clear Props", "icon_active": "mdi:layers-outline", "icon_inactive": "mdi:layers-off-outline"},
     "announcements": {"name": "Clear Announcements", "icon_active": "mdi:bullhorn-variant", "icon_inactive": "mdi:bullhorn-outline"},
     "slide": {"name": "Clear Slide", "icon_active": "mdi:text-box-outline", "icon_inactive": "mdi:text-box-remove-outline"},
