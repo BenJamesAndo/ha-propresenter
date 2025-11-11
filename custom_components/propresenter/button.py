@@ -72,7 +72,6 @@ async def async_setup_entry(
         
         # Skip "Countdown to Time" timers as they're clock-based, not duration-based
         if timer.get("count_down_to_time"):
-            _LOGGER.debug(f"Skipping 'Countdown to Time' timer reset button: {timer_name}")
             continue
         
         if timer_uuid and timer_name:
