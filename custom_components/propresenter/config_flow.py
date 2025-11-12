@@ -38,19 +38,48 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
         # Test the connection by getting version info
         version_info = await api.get_version()
         
+        _LOGGER.debug("Version info response: %s", version_info)
+        
         if not version_info:
             _LOGGER.error("Failed to get version information from ProPresenter")
             raise CannotConnect("Failed to get version information")
+        
+        # Extract version string from host_description (format: "ProPresenter 19.0.1")
+        host_description = version_info.get("host_description", "")
+        
+        if not host_description or not host_description.startswith("ProPresenter"):
+            _LOGGER.warning("ProPresenter version information not available. Response: %s", version_info)
+            raise CannotConnect("Unable to determine ProPresenter version")
+        
+        # Parse version from host_description (e.g., "ProPresenter 19.0.1" -> "19.0.1")
+        version_str = host_description.replace("ProPresenter ", "").strip()
+        
+        if not version_str:
+            _LOGGER.warning("Could not extract version from host_description: %s", host_description)
+            raise CannotConnect("Unable to determine ProPresenter version")
+        
+        # Parse version (format: "19.0.1" or similar)
+        version_info_parsed = None
+        try:
+            version_parts = version_str.split(".")
+            major = int(version_parts[0])
+            minor = int(version_parts[1]) if len(version_parts) > 1 else 0
+            patch = int(version_parts[2]) if len(version_parts) > 2 else 0
+            version_info_parsed = (major, minor, patch)
+        except (ValueError, IndexError) as err:
+            _LOGGER.warning("Could not parse ProPresenter version: %s", version_str)
+            raise CannotConnect(f"Could not validate ProPresenter version: {version_str}") from err
             
         # Extract useful info for the title
         name = version_info.get("name", "ProPresenter")
-        version = version_info.get("version", "Unknown")
         
-        _LOGGER.debug("Successfully connected to %s version %s", name, version)
+        _LOGGER.debug("Successfully connected to %s version %s", name, version_str)
         
+        # Note: Version warnings (e.g., < v19) are handled at the next step
         return {
             "title": f"{name} ({data[CONF_HOST]})",
-            "version": version,
+            "version": version_str,
+            "version_tuple": version_info_parsed,  # Pass parsed version for later checks
         }
     except ProPresenterConnectionError as err:
         _LOGGER.error("ProPresenter connection error: %s", err, exc_info=True)
@@ -80,6 +109,15 @@ class ProPresenterConfigFlow(ConfigFlow, domain=DOMAIN):
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
             else:
+                # Log warning if version is old
+                version_tuple = info.get("version_tuple")
+                if version_tuple and version_tuple[0] < 19:
+                    _LOGGER.warning(
+                        "ProPresenter version %s detected. This integration works best with v19 or higher. "
+                        "Older versions may have limited functionality.",
+                        info.get("version", "Unknown")
+                    )
+                
                 # Update the config entry with new data
                 return self.async_update_reload_and_abort(
                     entry,
@@ -123,6 +161,15 @@ class ProPresenterConfigFlow(ConfigFlow, domain=DOMAIN):
                     f"{user_input[CONF_HOST]}:{user_input[CONF_PORT]}"
                 )
                 self._abort_if_unique_id_configured()
+
+                # Log warning if version is old
+                version_tuple = info.get("version_tuple")
+                if version_tuple and version_tuple[0] < 19:
+                    _LOGGER.warning(
+                        "ProPresenter version %s detected. This integration works best with v19 or higher. "
+                        "Older versions may have limited functionality.",
+                        info.get("version", "Unknown")
+                    )
 
                 return self.async_create_entry(
                     title=info["title"],
