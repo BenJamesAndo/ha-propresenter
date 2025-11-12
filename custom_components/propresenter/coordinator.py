@@ -8,6 +8,7 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import async_get as async_get_device_registry
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import ProPresenterAPI, ProPresenterConnectionError
@@ -24,6 +25,7 @@ class ProPresenterCoordinator(DataUpdateCoordinator):
         """Initialize coordinator."""
         self.config_entry = config_entry
         self.streaming_coordinator = None  # Set later by streaming coordinator
+        self._last_known_version = None  # Track version to only update device info when it changes
         
         # Get configuration values
         host = config_entry.data[CONF_HOST]
@@ -134,6 +136,11 @@ class ProPresenterCoordinator(DataUpdateCoordinator):
             }
             # Cache the successful data
             self._data = data
+            
+            # Check if version has changed and update device registry if needed
+            # This only calls async_update_device() if version actually changed
+            await self.update_device_firmware_version()
+            
             return data
         except ProPresenterConnectionError as err:
             raise UpdateFailed(f"Error communicating with ProPresenter: {err}") from err
@@ -141,6 +148,40 @@ class ProPresenterCoordinator(DataUpdateCoordinator):
     async def async_shutdown(self) -> None:
         """Close API connection on shutdown."""
         await self.api.close()
+
+    async def update_device_firmware_version(self) -> None:
+        """Update device registry with current firmware version.
+        
+        This only updates if the version has actually changed since last check.
+        """
+        if not self.data:
+            return
+        
+        version_info = self.data.get("version", {})
+        host_description = version_info.get("host_description", "")
+        current_version = "Unknown"
+        if host_description.startswith("ProPresenter "):
+            current_version = host_description.replace("ProPresenter ", "")
+        
+        # Only update device registry if version has changed
+        if current_version == self._last_known_version:
+            return
+        
+        self._last_known_version = current_version
+        
+        try:
+            device_registry = async_get_device_registry(self.hass)
+            device = device_registry.async_get_device(
+                identifiers={(DOMAIN, self.config_entry.entry_id)}
+            )
+            
+            if device:
+                device_registry.async_update_device(
+                    device.id,
+                    sw_version=current_version
+                )
+        except Exception as err:
+            _LOGGER.debug(f"Could not update device registry: {err}")
 
     def invalidate_playlist_cache(self) -> None:
         """Invalidate cached playlist data to force refresh on next poll."""
@@ -169,6 +210,8 @@ class ProPresenterStreamingCoordinator(DataUpdateCoordinator):
         self._stream_task = None
         self._poll_task = None
         self.connected = False  # Track connection state globally
+        self._last_logged_error = None  # Track last error to avoid log spam
+        self._error_count = 0  # Count consecutive errors
         
         # Set reference back to static coordinator
         if static_coordinator:
@@ -368,16 +411,58 @@ class ProPresenterStreamingCoordinator(DataUpdateCoordinator):
                 # If we get here, stream connected successfully
                 self.connected = True
                 self.last_update_success = True
+                
+                # When reconnecting, refresh the static coordinator to get fresh version info
+                # (which will automatically update device registry if version changed)
+                if self.static_coordinator:
+                    try:
+                        await self.static_coordinator.async_refresh()
+                    except Exception as err:
+                        _LOGGER.debug(f"Could not refresh static coordinator on reconnect: {err}")
+                
                 self.async_update_listeners()
             except asyncio.CancelledError:
                 raise
             except Exception as err:
                 error_msg = str(err) if err else "Connection lost"
-                _LOGGER.warning(
-                    "Stream disconnected: %s. Reconnecting in %d seconds...",
-                    error_msg,
-                    reconnect_delay
-                )
+                
+                # Rate limit error logging - only log if error message changed or error count reaches threshold
+                should_log = False
+                if error_msg != self._last_logged_error:
+                    # New error type - always log it
+                    should_log = True
+                    self._error_count = 1
+                    self._last_logged_error = error_msg
+                elif self._error_count == 1:
+                    # Log the first repeat of the same error
+                    should_log = True
+                    self._error_count += 1
+                elif self._error_count % 10 == 0:
+                    # Then log every 10th occurrence
+                    should_log = True
+                    self._error_count += 1
+                else:
+                    self._error_count += 1
+                
+                # Check if this might be an unsupported version issue (400 Bad Request on streaming)
+                version_hint = ""
+                if "400" in error_msg and self.static_coordinator:
+                    try:
+                        version_data = self.static_coordinator.data.get("version", {})
+                        host_description = version_data.get("host_description", "")
+                        if host_description:
+                            version_hint = f" - Current version: {host_description}. If using v7.9 or below, the /v1/status/updates endpoint is not supported. Please upgrade to v7.9.1 or higher."
+                    except Exception:
+                        pass
+                
+                if should_log:
+                    _LOGGER.warning(
+                        "Stream disconnected: %s. Reconnecting in %d seconds...%s",
+                        error_msg,
+                        reconnect_delay,
+                        version_hint
+                    )
+                
                 # Mark entities as unavailable when disconnected
                 self.connected = False
                 self.last_update_success = False
