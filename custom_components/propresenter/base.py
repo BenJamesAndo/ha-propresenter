@@ -31,12 +31,33 @@ def get_device_info(coordinator: ProPresenterCoordinator, config_entry: ConfigEn
     if host_description.startswith("ProPresenter "):
         version = host_description.replace("ProPresenter ", "")
     
+    # Add warning message if version is below recommended (v18)
+    if version != "Unknown":
+        try:
+            version_clean = version.strip()
+            version_parts = version_clean.split(".")
+            major = int(version_parts[0])
+            if major < 18:
+                version = f"{version_clean} (limited functionality, upgrade to v18 or above)"
+        except (ValueError, IndexError):
+            pass
+    
+    # Extract hardware platform (Windows/Mac)
+    platform = version_data.get("platform", "Unknown")
+    # Improve platform names
+    platform_map = {
+        "win": "Windows",
+        "mac": "Mac",
+    }
+    platform = platform_map.get(platform, platform)
+    
     return DeviceInfo(
         identifiers={(DOMAIN, config_entry.entry_id)},
         name=name,
         manufacturer="Renewed Vision",
         model="ProPresenter",
         sw_version=version,
+        hw_version=platform,
         configuration_url=f"http://{host}:{port}/v1/control/",
     )
 
@@ -61,7 +82,7 @@ class ProPresenterBaseEntity(CoordinatorEntity):
         """
         super().__init__(coordinator)
         self.config_entry = config_entry
-        self.static_coordinator = static_coordinator  # Store static coordinator for accessing playlist data
+        self.static_coordinator = static_coordinator
         
         # Use static coordinator for device info if provided, otherwise use main coordinator
         device_info_coordinator = static_coordinator if static_coordinator else coordinator
