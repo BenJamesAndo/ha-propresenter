@@ -44,6 +44,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     if not coordinator.data:
         raise ConfigEntryNotReady("Failed to connect to ProPresenter")
     
+    # Update device registry with initial version info
+    await coordinator.update_device_firmware_version()
+    
     # Initialize the streaming coordinator for dynamic presentation data
     streaming_coordinator = ProPresenterStreamingCoordinator(hass, coordinator.api, coordinator)
     await streaming_coordinator.async_config_entry_first_refresh()
