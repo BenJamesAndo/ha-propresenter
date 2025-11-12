@@ -31,14 +31,14 @@ def get_device_info(coordinator: ProPresenterCoordinator, config_entry: ConfigEn
     if host_description.startswith("ProPresenter "):
         version = host_description.replace("ProPresenter ", "")
     
-    # Add warning message if version is below recommended (v18)
+    # Add warning message if version is below recommended (v19)
     if version != "Unknown":
         try:
             version_clean = version.strip()
             version_parts = version_clean.split(".")
             major = int(version_parts[0])
-            if major < 18:
-                version = f"{version_clean} (limited functionality, upgrade to v18 or above)"
+            if major < 19:
+                version = f"{version_clean} (limited functionality, upgrade to v19 or above)"
         except (ValueError, IndexError):
             pass
     
