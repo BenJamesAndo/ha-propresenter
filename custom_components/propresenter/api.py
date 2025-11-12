@@ -104,7 +104,8 @@ class ProPresenterAPI:
                                 update_data = data.get('data')
                                 await callback(path, update_data)
                         except json.JSONDecodeError as err:
-                            _LOGGER.warning(f"Could not decode line: {line[:100]} - Error: {err}")
+                            # Log at debug level - these are typically benign stream formatting lines
+                            _LOGGER.debug(f"Could not decode line: {line[:100]} - Error: {err}")
                         except Exception as err:
                             _LOGGER.error(f"Error processing update: {err}", exc_info=True)
                             
