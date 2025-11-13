@@ -4,9 +4,7 @@ DOMAIN = "propresenter"
 
 # Configuration constants
 CONF_PORT = "port"
-CONF_REQUIRES_CONFIRMATION = "requires_confirmation"
 DEFAULT_PORT = 50001
-DEFAULT_REQUIRES_CONFIRMATION = False
 DEFAULT_SCAN_INTERVAL = 5  # Poll every 5 seconds for faster updates
 
 # API endpoints

@@ -14,7 +14,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.entity import DeviceInfo
 
 from .base import ProPresenterBaseEntity
-from .const import CONF_REQUIRES_CONFIRMATION, DEFAULT_REQUIRES_CONFIRMATION, DOMAIN
+from .const import DOMAIN
 from .coordinator import ProPresenterCoordinator, ProPresenterStreamingCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -140,16 +140,10 @@ class ProPresenterMessageSwitch(ProPresenterBaseEntity, SwitchEntity):
                                         break
                                 break
             
-            # Get requires_confirmation from config entry data (defaults to False for existing configs)
-            requires_confirmation = self.config_entry.data.get(
-                CONF_REQUIRES_CONFIRMATION, DEFAULT_REQUIRES_CONFIRMATION
-            )
-            
-            # Show message with token values from HA text entities and requires_confirmation setting
+            # Show message with token values from HA text entities
             await self.api.show_message(
                 self._message_uuid,
                 tokens if tokens else None,
-                requires_confirmation=requires_confirmation
             )
             # No need to refresh - streaming will update automatically
         except Exception as err:

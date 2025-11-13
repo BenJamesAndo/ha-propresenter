@@ -11,9 +11,10 @@ from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 
 from .api import ProPresenterAPI, ProPresenterConnectionError
-from .const import CONF_PORT, CONF_REQUIRES_CONFIRMATION, DEFAULT_PORT, DEFAULT_REQUIRES_CONFIRMATION, DOMAIN
+from .const import CONF_PORT, DEFAULT_PORT, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,7 +22,6 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_HOST): str,
         vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
-        vol.Optional(CONF_REQUIRES_CONFIRMATION, default=DEFAULT_REQUIRES_CONFIRMATION): bool,
     }
 )
 
@@ -75,9 +75,9 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
         
         _LOGGER.debug("Successfully connected to %s version %s", name, version_str)
         
-        # Note: Version warnings (e.g., < v19) are handled at the next step
         return {
             "title": f"{name} ({data[CONF_HOST]})",
+            "name": name,
             "version": version_str,
             "version_tuple": version_info_parsed,  # Pass parsed version for later checks
         }
@@ -132,10 +132,6 @@ class ProPresenterConfigFlow(ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required(CONF_HOST, default=entry.data.get(CONF_HOST)): str,
                     vol.Required(CONF_PORT, default=entry.data.get(CONF_PORT, DEFAULT_PORT)): int,
-                    vol.Optional(
-                        CONF_REQUIRES_CONFIRMATION, 
-                        default=entry.data.get(CONF_REQUIRES_CONFIRMATION, DEFAULT_REQUIRES_CONFIRMATION)
-                    ): bool,
                 }
             ),
             errors=errors,
@@ -180,6 +176,75 @@ class ProPresenterConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=STEP_USER_DATA_SCHEMA,
             errors=errors,
+        )
+
+    async def async_step_zeroconf(
+        self, discovery_info: ZeroconfServiceInfo
+    ) -> ConfigFlowResult:
+        """Handle zeroconf discovery."""
+        # Extract IP and port from discovery info
+        ip_address = discovery_info.host
+        port = discovery_info.port or DEFAULT_PORT
+
+        if not ip_address:
+            return self.async_abort(reason="no_host")
+
+        # Validate the connection using the IP
+        try:
+            info = await validate_input(
+                self.hass,
+                {
+                    CONF_HOST: ip_address,
+                    CONF_PORT: port,
+                },
+            )
+        except CannotConnect:
+            return self.async_abort(reason="cannot_connect")
+        except Exception:  # pylint: disable=broad-except
+            _LOGGER.exception("Unexpected error validating discovered ProPresenter")
+            return self.async_abort(reason="unknown")
+
+        # Use device name as unique_id (stable, unlikely to change)
+        device_name = info.get("name", "ProPresenter")
+        await self.async_set_unique_id(device_name)
+        
+        # Auto-update IP if device already configured (ESPHome pattern)
+        # Store IP address for reliable connection
+        self._abort_if_unique_id_configured(
+            updates={CONF_HOST: ip_address}
+        )
+
+        self.context.update(
+            {
+                "title_placeholders": {"name": device_name},
+                "_discovered_host": ip_address,
+                "_discovered_port": port,
+                "_discovered_name": device_name,
+            }
+        )
+
+        return await self.async_step_zeroconf_confirm()
+
+    async def async_step_zeroconf_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Confirm zeroconf discovery."""
+        name = self.context.get("_discovered_name", "ProPresenter")
+        host = self.context.get("_discovered_host")
+        port = self.context.get("_discovered_port")
+
+        if user_input is not None:
+            return self.async_create_entry(
+                title=name,
+                data={
+                    CONF_HOST: host,
+                    CONF_PORT: port,
+                },
+            )
+
+        return self.async_show_form(
+            step_id="zeroconf_confirm",
+            description_placeholders={"name": name},
         )
 
 

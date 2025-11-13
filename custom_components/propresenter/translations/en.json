@@ -6,8 +6,7 @@
         "description": "Enter the connection details for your ProPresenter instance.",
         "data": {
           "host": "IP Address or Hostname",
-          "port": "Port",
-          "requires_confirmation": "Enable confirmation notifications for messages"
+          "port": "Port"
         }
       },
       "reconfigure": {
@@ -15,9 +14,12 @@
         "description": "Update the connection details for your ProPresenter instance.",
         "data": {
           "host": "IP Address or Hostname",
-          "port": "Port",
-          "requires_confirmation": "Enable confirmation notifications for messages"
+          "port": "Port"
         }
+      },
+      "zeroconf_confirm": {
+        "title": "Discovered ProPresenter",
+        "description": "Do you want to add {name} to Home Assistant?"
       }
     },
     "error": {
@@ -26,7 +28,10 @@
     },
     "abort": {
       "already_configured": "This ProPresenter instance is already configured.",
-      "reconfigure_successful": "ProPresenter reconfigured successfully"
+      "reconfigure_successful": "ProPresenter reconfigured successfully",
+      "no_host": "No host information in discovery data.",
+      "cannot_connect": "Cannot connect to the discovered ProPresenter instance.",
+      "unknown": "An unexpected error occurred during discovery."
     }
   },
   "entity": {
@@ -87,6 +92,10 @@
           "description": "Token values as key-value pairs. For example: {\"Name\": \"John Smith\"}"
         }
       }
+    },
+    "refresh_presentation_cache": {
+      "name": "Refresh presentation cache",
+      "description": "Force refresh the cached presentation details. Call this after editing slide notes in ProPresenter to immediately update the sensor values."
     }
   }
 }

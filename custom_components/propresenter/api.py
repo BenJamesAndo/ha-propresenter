@@ -266,18 +266,15 @@ class ProPresenterAPI:
         data = await self._request("GET", "/v1/messages")
         return data if data else []
 
-    async def show_message(self, message_id: str, tokens: dict[str, str] | None = None, requires_confirmation: bool = False) -> None:
+    async def show_message(self, message_id: str, tokens: dict[str, str] | None = None) -> None:
         """Show/trigger a message.
         
         Args:
             message_id: The UUID of the message to show
             tokens: Optional dictionary of token names to values for dynamic content
                    If None, will fetch and use the stored token values from the message configuration
-            requires_confirmation: Whether to require confirmation in ProPresenter before showing the message
         """
-        # Use the query parameter to control confirmation dialog
-        confirmation_param = "true" if requires_confirmation else "false"
-        endpoint = f"/v1/message/{message_id}/trigger?requires_confirmation={confirmation_param}"
+        endpoint = f"/v1/message/{message_id}/trigger"
         
         # Fetch the message to get current token values
         message_data = await self._request("GET", f"/v1/message/{message_id}")
