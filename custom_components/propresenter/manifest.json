@@ -8,6 +8,6 @@
   "issue_tracker": "https://github.com/BenJamesAndo/ha-propresenter/issues",
   "iot_class": "local_push",
   "requirements": ["aiohttp>=3.8.0", "Pillow>=10.0.0"],
-  "version": "0.3.0",
+  "version": "0.4.0",
   "zeroconf": ["_pro7proremote._tcp.local."]
 }
