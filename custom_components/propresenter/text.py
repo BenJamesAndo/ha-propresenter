@@ -38,14 +38,23 @@ async def async_setup_entry(
         message_uuid = message_id.get("uuid") if isinstance(message_id, dict) else None
         message_name = message_id.get("name", "Unknown") if isinstance(message_id, dict) else "Unknown"
         
-        # Get the tokens for this message
+        # Get all tokens for this message
         tokens = message.get("tokens", [])
         
+        # Count occurrences of each token name to determine if we need indices
+        token_name_counts = {}
         for token in tokens:
+            name = token.get("name")
+            if name:
+                token_name_counts[name] = token_name_counts.get(name, 0) + 1
+        
+        for token_index, token in enumerate(tokens):
             token_name = token.get("name")
-            token_uuid = token.get("uuid")
             
-            if message_uuid and token_name and token_uuid:
+            if message_uuid and token_name:
+                # Check if this token name appears multiple times
+                has_duplicates = token_name_counts.get(token_name, 1) > 1
+                
                 entities.append(
                     ProPresenterMessageTokenText(
                         coordinator,
@@ -54,7 +63,8 @@ async def async_setup_entry(
                         message_uuid,
                         message_name,
                         token_name,
-                        token_uuid,
+                        token_index,
+                        has_duplicates,
                     )
                 )
     
@@ -62,11 +72,16 @@ async def async_setup_entry(
 
 
 class ProPresenterMessageTokenText(ProPresenterBaseEntity, TextEntity):
-    """Text entity for a message token (dynamic text field)."""
+    """Text entity for a message token (dynamic text field).
+    
+    Supports multiple tokens per message. Values are stored locally in Home Assistant
+    and sent to ProPresenter when the message switch is turned on.
+    """
 
     _attr_native_max = 255  # Max length for text input
     _attr_mode = "text"  # Single-line text input
     _attr_icon = "mdi:message-text"
+    
     def __init__(
         self,
         static_coordinator: ProPresenterCoordinator,
@@ -75,7 +90,8 @@ class ProPresenterMessageTokenText(ProPresenterBaseEntity, TextEntity):
         message_uuid: str,
         message_name: str,
         token_name: str,
-        token_uuid: str,
+        token_index: int,
+        has_duplicates: bool,
     ) -> None:
         """Initialize the text entity."""
         super().__init__(streaming_coordinator, config_entry, static_coordinator=static_coordinator)
@@ -83,46 +99,74 @@ class ProPresenterMessageTokenText(ProPresenterBaseEntity, TextEntity):
         self._message_uuid = message_uuid
         self._message_name = message_name
         self._token_name = token_name
-        self._token_uuid = token_uuid
-        self._attr_unique_id = f"{config_entry.entry_id}_message_{message_uuid}_token_{token_uuid}"
+        self._token_index = token_index
+        self._has_duplicates = has_duplicates
+        
+        # Use message UUID, token name, and index for unique_id
+        sanitized_name = token_name.lower().replace(' ', '_')
+        short_uuid = message_uuid.split('-')[0]
+        self._attr_unique_id = f"{config_entry.entry_id}_msg_{short_uuid}_{sanitized_name}_{token_index}"
+        
+        # Set entity name
+        if has_duplicates:
+            self._attr_name = f"{message_name} {token_name} {token_index + 1}"
+        else:
+            self._attr_name = f"{message_name} {token_name}"
+        
         self._attr_translation_key = "message_token"
         
         # Store the user-entered value locally (overrides ProPresenter value)
         self._local_value = None
-
+    
     @property
-    def name(self) -> str:
-        """Return the name of the entity."""
-        return f"{self._message_name} {self._token_name}"
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional attributes for this entity."""
+        return {
+            "token_name": self._token_name,
+            "token_index": self._token_index,
+            "message_uuid": self._message_uuid,
+        }
 
     @property
     def native_value(self) -> str | None:
         """Return the current value of the token."""
-        # If user has set a local value, use that (takes priority)
-        if self._local_value is not None:
-            return self._local_value
-        
-        # Otherwise, read from ProPresenter (for two-way sync)
+        # Read current value from ProPresenter
         messages = self.coordinator.data.get("messages", [])
+        pp_value = ""
         for message in messages:
             message_id = message.get("id", {})
             message_uuid = message_id.get("uuid") if isinstance(message_id, dict) else None
             
             if message_uuid == self._message_uuid:
                 tokens = message.get("tokens", [])
-                for token in tokens:
+                # Match by index (stable position in array)
+                if 0 <= self._token_index < len(tokens):
+                    token = tokens[self._token_index]
                     if token.get("name") == self._token_name:
                         text_data = token.get("text", {})
                         if isinstance(text_data, dict):
-                            return text_data.get("text", "")
-                        return ""
+                            pp_value = text_data.get("text", "")
+                        break
+                break
         
-        return ""
+        # If we have a local value
+        if self._local_value is not None:
+            # If PP value now matches local value, clear local (sync completed)
+            if pp_value == self._local_value:
+                self._local_value = None
+                return pp_value
+            # Otherwise keep showing local value (user edited, not yet synced)
+            return self._local_value
+        
+        # No local value, return PP value
+        return pp_value
 
     async def async_set_value(self, value: str) -> None:
-        """Update the token value."""
-        # Store the value locally - it will be used when triggering the message
-        # This takes priority over ProPresenter's stored value
+        """Update the token value.
+        
+        Stores the value locally. It will be sent to ProPresenter when the
+        message switch is turned on.
+        """
         self._local_value = value
         self.async_write_ha_state()
 

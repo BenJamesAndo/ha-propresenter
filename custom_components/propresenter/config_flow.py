@@ -152,11 +152,16 @@ class ProPresenterConfigFlow(ConfigFlow, domain=DOMAIN):
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
             else:
-                # Set unique ID based on host:port combination
-                await self.async_set_unique_id(
-                    f"{user_input[CONF_HOST]}:{user_input[CONF_PORT]}"
+                # Use device name as unique_id (matches zeroconf pattern for consistency)
+                device_name = info.get("name", "ProPresenter")
+                await self.async_set_unique_id(device_name)
+                
+                # Auto-update IP if device already configured
+                self._abort_if_unique_id_configured(
+                    updates={
+                        CONF_HOST: user_input[CONF_HOST],
+                    }
                 )
-                self._abort_if_unique_id_configured()
 
                 # Log warning if version is old
                 version_tuple = info.get("version_tuple")
@@ -182,37 +187,93 @@ class ProPresenterConfigFlow(ConfigFlow, domain=DOMAIN):
         self, discovery_info: ZeroconfServiceInfo
     ) -> ConfigFlowResult:
         """Handle zeroconf discovery."""
-        # Extract IP and port from discovery info
-        ip_address = discovery_info.host
+        import asyncio
+        import ipaddress
+        
         port = discovery_info.port or DEFAULT_PORT
 
-        if not ip_address:
+        # Get all IP addresses from discovery info
+        # discovery_info.addresses contains all IPs as bytes
+        ip_candidates = []
+        if hasattr(discovery_info, 'addresses') and discovery_info.addresses:
+            for addr_bytes in discovery_info.addresses:
+                try:
+                    ip_obj = ipaddress.ip_address(addr_bytes)
+                    ip = str(ip_obj)
+                    # Filter out IPv6 and link-local
+                    if ip_obj.version == 6:
+                        _LOGGER.debug("ProPresenter discovery: Skipping IPv6 address: %s", ip)
+                        continue
+                    ip_candidates.append(ip)
+                except (ValueError, OSError):
+                    continue
+        
+        # Fallback to single host if addresses not available
+        if not ip_candidates and discovery_info.host:
+            ip_candidates = [discovery_info.host]
+        
+        if not ip_candidates:
             return self.async_abort(reason="no_host")
 
-        # Validate the connection using the IP
-        try:
-            info = await validate_input(
-                self.hass,
-                {
-                    CONF_HOST: ip_address,
-                    CONF_PORT: port,
-                },
-            )
-        except CannotConnect:
+        # Race all IPs - whichever connects first wins (usually Ethernet due to lower latency)
+        _LOGGER.debug(
+            "ProPresenter discovery: Racing connection to %d IPs: %s",
+            len(ip_candidates),
+            ip_candidates,
+        )
+        
+        async def try_connection(ip: str):
+            """Try connecting to a specific IP."""
+            try:
+                info = await validate_input(
+                    self.hass,
+                    {
+                        CONF_HOST: ip,
+                        CONF_PORT: port,
+                    },
+                )
+                return (ip, info)
+            except Exception as err:  # pylint: disable=broad-except
+                _LOGGER.debug("ProPresenter discovery: %s failed: %s", ip, err)
+                return None
+        
+        # Create tasks for all IPs and race them
+        tasks = [asyncio.create_task(try_connection(ip)) for ip in ip_candidates]
+        
+        # Use asyncio.as_completed to get first successful connection
+        ip_address = None
+        info = None
+        
+        for coro in asyncio.as_completed(tasks):
+            result = await coro
+            if result is not None:
+                ip_address, info = result
+                _LOGGER.info(
+                    "ProPresenter discovery: Connected to %s (won race against %s)",
+                    ip_address,
+                    [ip for ip in ip_candidates if ip != ip_address],
+                )
+                # Cancel remaining tasks
+                for task in tasks:
+                    if not task.done():
+                        task.cancel()
+                break
+        
+        if not ip_address or not info:
             return self.async_abort(reason="cannot_connect")
-        except Exception:  # pylint: disable=broad-except
-            _LOGGER.exception("Unexpected error validating discovered ProPresenter")
-            return self.async_abort(reason="unknown")
 
-        # Use device name as unique_id (stable, unlikely to change)
         device_name = info.get("name", "ProPresenter")
         await self.async_set_unique_id(device_name)
         
-        # Auto-update IP if device already configured (ESPHome pattern)
-        # Store IP address for reliable connection
-        self._abort_if_unique_id_configured(
-            updates={CONF_HOST: ip_address}
-        )
+        existing_entries = self._async_current_entries(include_ignore=False)
+        for entry in existing_entries:
+            if entry.unique_id == device_name:
+                new_data = entry.data.copy()
+                if new_data.get(CONF_HOST) != ip_address:
+                    new_data[CONF_HOST] = ip_address
+                    self.hass.config_entries.async_update_entry(entry, data=new_data)
+                
+                return self.async_abort(reason="already_configured")
 
         self.context.update(
             {

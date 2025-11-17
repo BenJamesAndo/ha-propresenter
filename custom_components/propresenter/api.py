@@ -271,7 +271,8 @@ class ProPresenterAPI:
         
         Args:
             message_id: The UUID of the message to show
-            tokens: Optional dictionary of token names to values for dynamic content
+            tokens: Optional dictionary of token names to values for dynamic content.
+                   Note: Duplicate token names are not supported due to ProPresenter API limitations.
                    If None, will fetch and use the stored token values from the message configuration
         """
         endpoint = f"/v1/message/{message_id}/trigger"
@@ -327,12 +328,23 @@ class ProPresenterAPI:
         endpoint = f"/v1/message/{message_id}"
         await self._request("PUT", endpoint, json_data=message_data)
 
-    async def update_message_token(self, message_id: str, token_name: str, token_value: str) -> None:
+    async def update_message_token(self, message_id: str, token_index: int, token_value: str) -> None:
         """Update the text value of a specific token in a message.
+        
+        LIMITATION: ProPresenter's API has a bug where PUT /v1/message/{id} does not
+        actually persist token text changes. The only way to update token values is via
+        POST /v1/message/{id}/trigger, which shows the message. This means updating a
+        token value will briefly display the message.
+        
+        Additionally, when a message has duplicate token names (e.g., two tokens named
+        "Message"), the trigger endpoint may update all tokens with that name instead of
+        just the target token, causing unexpected behavior.
+        
+        RECOMMENDATION: Use only one token per unique name in ProPresenter messages.
         
         Args:
             message_id: The UUID of the message
-            token_name: The name of the token to update
+            token_index: The index of the token to update (0-based)
             token_value: The new text value for the token
         """
         # Get the current message data
@@ -343,25 +355,32 @@ class ProPresenterAPI:
             _LOGGER.error(f"Failed to retrieve message {message_id}")
             return
         
-        # Update the specific token's text
+        # Validate token index
         tokens = message_data.get("tokens", [])
-        token_updated = False
-        
-        for token in tokens:
-            if token.get("name") == token_name:
-                # Update the token text
-                if "text" not in token:
-                    token["text"] = {}
-                token["text"]["text"] = token_value
-                token_updated = True
-                break
-        
-        if not token_updated:
-            _LOGGER.warning(f"Token '{token_name}' not found in message {message_id}")
+        if token_index < 0 or token_index >= len(tokens):
+            _LOGGER.error(f"Token index {token_index} out of range for message {message_id} (has {len(tokens)} tokens)")
             return
         
-        # Send the updated message back
-        await self._request("PUT", endpoint, json_data=message_data)
+        # Build token payload for trigger - include all tokens with their current values
+        token_payload = []
+        for i, token in enumerate(tokens):
+            if i == token_index:
+                # Use the new value for the target token
+                token_payload.append({
+                    "name": token["name"],
+                    "text": {"text": token_value}
+                })
+            else:
+                # Keep existing values for other tokens
+                token_payload.append({
+                    "name": token["name"],
+                    "text": {"text": token.get("text", {}).get("text", "")}
+                })
+        
+        # Trigger to persist the values
+        # This will show the message briefly (API limitation - no way to update without showing)
+        trigger_endpoint = f"/v1/message/{message_id}/trigger"
+        await self._request("POST", trigger_endpoint, json_data=token_payload)
 
     async def get_clear_groups(self) -> list[dict[str, Any]]:
         """Get list of all configured clear groups.

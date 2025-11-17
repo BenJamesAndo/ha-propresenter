@@ -118,27 +118,22 @@ class ProPresenterMessageSwitch(ProPresenterBaseEntity, SwitchEntity):
             from homeassistant.helpers import entity_registry as er
             registry = er.async_get(self.hass)
             
+            # Get message UUID short form for matching
+            short_uuid = self._message_uuid.split('-')[0]
+            
             # Find text entities that belong to this message
             for entity_id, entry in registry.entities.items():
                 if entry.platform == "propresenter" and entity_id.startswith("text."):
-                    # Check if this text entity belongs to this message
-                    if f"message_{self._message_uuid}_token_" in entry.unique_id:
-                        # Get the token name from the streaming coordinator
-                        messages = self.coordinator.data.get("messages", [])
-                        for message in messages:
-                            message_data = message.get("id", {})
-                            if message_data.get("uuid") == self._message_uuid:
-                                message_tokens = message.get("tokens", [])
-                                for token in message_tokens:
-                                    token_uuid = token.get("uuid")
-                                    if f"token_{token_uuid}" in entry.unique_id:
-                                        token_name = token.get("name")
-                                        # Get the current state value
-                                        state = self.hass.states.get(entity_id)
-                                        if state and token_name:
-                                            tokens[token_name] = state.state
-                                        break
-                                break
+                    # Check if this text entity belongs to this message (format: msg_{short_uuid}_{token_name}_{index})
+                    if f"_msg_{short_uuid}_" in entry.unique_id:
+                        # Get the current state value
+                        state = self.hass.states.get(entity_id)
+                        if state and state.attributes:
+                            # Get token info from entity attributes
+                            token_name = state.attributes.get("token_name")
+                            if token_name:
+                                # Store by name (duplicate names will overwrite - API limitation)
+                                tokens[token_name] = state.state
             
             # Show message with token values from HA text entities
             await self.api.show_message(
