@@ -28,7 +28,17 @@ This custom integration allows you to control [ProPresenter](https://www.renewed
 
 ## Installation
 
-### HACS (Recommended)
+### ProPresenter Setup
+
+Make sure the ProPresenter API is enabled:
+
+1. Open ProPresenter
+2. Go to **ProPresenter** → **Settings** → **Network** → **Enable Network**
+<img width="491" height="220" alt="image" src="https://github.com/user-attachments/assets/50f08cbf-0a53-4d06-91e8-d7a9b5557e75" />
+
+3. Optionally enable either **Stage App** or **ProPresenter Remote** to enable auto-discovery in Home Assistant
+
+### Home Assistant Setup - HACS (Recommended)
 
 1. Make sure you have [HACS](https://hacs.xyz/) installed in your Home Assistant instance
 2. Click the button below to add this repository to HACS:
@@ -60,19 +70,7 @@ This custom integration allows you to control [ProPresenter](https://www.renewed
 
 2. Restart Home Assistant
 
-3. ProPresenter should be automatically discovered inside of Home Assistant
-
-4. Otherwise go to **Settings** → **Devices & Services** → **Add Integration**
-
-5. Search for "ProPresenter" and follow the setup instructions
-
-### ProPresenter Setup
-
-Make sure the ProPresenter API is enabled:
-
-1. Open ProPresenter
-2. Go to **ProPresenter** → **Settings** → **Network** → **Enable Network**
-<img width="491" height="220" alt="image" src="https://github.com/user-attachments/assets/50f08cbf-0a53-4d06-91e8-d7a9b5557e75" />
+3. Refer to step 5 above
 
 ## Other Noteworthy Projects
 Home Assistant ProWebRemote Add-on
