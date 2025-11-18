@@ -9,5 +9,5 @@
   "iot_class": "local_push",
   "requirements": ["aiohttp>=3.8.0", "Pillow>=10.0.0"],
   "version": "0.3.0",
-  "zeroconf": ["_pro7proremote._tcp.local."]
+  "zeroconf": ["_pro7proremote._tcp.local.", "_pro7stagedsply._tcp.local.", "_proapiv1ws._tcp.local."]
 }
