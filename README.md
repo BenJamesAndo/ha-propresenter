@@ -74,6 +74,11 @@ Make sure the ProPresenter API is enabled:
 2. Go to **ProPresenter** → **Settings** → **Network** → **Enable Network**
 <img width="491" height="220" alt="image" src="https://github.com/user-attachments/assets/50f08cbf-0a53-4d06-91e8-d7a9b5557e75" />
 
+## Other Noteworthy Projects
+Home Assistant ProWebRemote Add-on
+https://github.com/BenJamesAndo/ha-addons/tree/main/prowebremote
+
+<img width="1917" height="925" alt="image" src="https://github.com/user-attachments/assets/0018fa65-788c-4dc6-b94d-434e8cf163e5" />
 
 ## API Reference
 
