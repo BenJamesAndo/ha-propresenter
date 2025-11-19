@@ -8,12 +8,9 @@ from typing import Any
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .base import ProPresenterBaseEntity
-from .const import DOMAIN
 from .coordinator import ProPresenterCoordinator, ProPresenterStreamingCoordinator
 
 _LOGGER = logging.getLogger(__name__)

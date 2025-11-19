@@ -12,7 +12,7 @@ from homeassistant.helpers.device_registry import async_get as async_get_device_
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import ProPresenterAPI, ProPresenterConnectionError
-from .const import CONF_PORT, DEFAULT_PORT, DEFAULT_SCAN_INTERVAL, DOMAIN
+from .const import CONF_PORT, DEFAULT_PORT, DOMAIN
 from .utils import collect_playlist_uuids
 
 _LOGGER = logging.getLogger(__name__)

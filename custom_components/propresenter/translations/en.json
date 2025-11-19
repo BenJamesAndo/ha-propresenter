@@ -89,7 +89,7 @@
         },
         "tokens": {
           "name": "Token values",
-          "description": "Token values as key-value pairs. For example: {\"Name\": \"John Smith\"}"
+          "description": "Token values as key-value pairs. Example: Name and Room tokens with their values"
         }
       }
     },

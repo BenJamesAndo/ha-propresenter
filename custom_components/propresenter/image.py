@@ -13,7 +13,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .base import ProPresenterBaseEntity
-from .const import DOMAIN
 from .coordinator import ProPresenterCoordinator, ProPresenterStreamingCoordinator
 from .utils import get_nested_value
 
@@ -476,7 +475,6 @@ class ProPresenterAnnouncementThumbnail(ProPresenterBaseEntity, ImageEntity):
             if announcement_index_info:
                 pres_uuid = get_nested_value(announcement_index_info, "presentation_id", "uuid")
                 slide_index = announcement_index_info.get("index")
-                pres_name = get_nested_value(announcement_index_info, "presentation_id", "name", default="Unknown")
                 
                 # If slide changed, clear cache to force refresh
                 if pres_uuid != self._current_pres_uuid or slide_index != self._current_slide_index:

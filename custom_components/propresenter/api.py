@@ -87,7 +87,7 @@ class ProPresenterAPI:
                 timeout=timeout
             ) as response:
                 response.raise_for_status()
-                _LOGGER.info(f"Stream connection established, reading updates...")
+                _LOGGER.info("Stream connection established, reading updates...")
                 
                 # Read the chunked response line by line
                 async for line in response.content:
@@ -897,20 +897,6 @@ class ProPresenterAPI:
         except Exception as e:
             _LOGGER.error("Error fetching thumbnail %s: %s", url, e)
             return None
-
-    async def trigger_slide(self, presentation_uuid: str, slide_index: int) -> None:
-        """Trigger a specific slide in an announcement.
-        
-        Args:
-            presentation_uuid: The UUID of the announcement presentation
-            slide_index: The index of the slide to trigger (0-based)
-        """
-        # Announcements use the same trigger mechanism as presentations
-        # First focus the presentation (it will show as announcement based on destination)
-        await self._request("GET", f"/v1/presentation/{presentation_uuid}/focus")
-        
-        # Then trigger the specific slide index in the focused presentation
-        await self._request("GET", f"/v1/presentation/focused/{slide_index}/trigger")
 
     async def get_looks(self) -> list[dict[str, Any]]:
         """Get list of all configured looks.

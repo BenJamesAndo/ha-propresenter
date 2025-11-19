@@ -5,8 +5,8 @@
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/BenJamesAndo/ha-propresenter",
-  "issue_tracker": "https://github.com/BenJamesAndo/ha-propresenter/issues",
   "iot_class": "local_push",
+  "issue_tracker": "https://github.com/BenJamesAndo/ha-propresenter/issues",
   "requirements": ["aiohttp>=3.8.0", "Pillow>=10.0.0"],
   "version": "0.4.1",
   "zeroconf": ["_pro7proremote._tcp.local.", "_pro7stagedsply._tcp.local.", "_proapiv1ws._tcp.local."]

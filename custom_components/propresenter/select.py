@@ -4,18 +4,14 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .base import ProPresenterBaseEntity
-from .const import DOMAIN
 from .coordinator import ProPresenterCoordinator, ProPresenterStreamingCoordinator
 from .utils import get_nested_value
 
@@ -33,7 +29,6 @@ async def async_setup_entry(
     
     # Get stage screens from streaming coordinator data
     stage_screens = streaming_coordinator.data.get("stage_screens", [])
-    stage_layouts = streaming_coordinator.data.get("stage_layouts", [])
     
     # Create a select entity for each stage screen
     entities = []

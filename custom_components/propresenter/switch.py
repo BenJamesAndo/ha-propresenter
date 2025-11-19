@@ -8,13 +8,9 @@ from typing import Any
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.helpers.entity import DeviceInfo
 
 from .base import ProPresenterBaseEntity
-from .const import DOMAIN
 from .coordinator import ProPresenterCoordinator, ProPresenterStreamingCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -281,7 +277,7 @@ class ProPresenterStageMessageSwitch(ProPresenterBaseEntity, SwitchEntity):
             for entity_id, entry in registry.entities.items():
                 if (entry.platform == "propresenter" 
                     and "stage_message" in entry.unique_id 
-                    and not "switch" in entry.unique_id
+                    and "switch" not in entry.unique_id
                     and entity_id.startswith("text.")):
                     state = self.hass.states.get(entity_id)
                     if state and state.state and state.state != "unknown":
