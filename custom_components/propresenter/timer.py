@@ -23,30 +23,41 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up ProPresenter timer entities."""
-    static_coordinator: ProPresenterCoordinator = config_entry.runtime_data["coordinator"]
-    streaming_coordinator: ProPresenterStreamingCoordinator = config_entry.runtime_data["streaming_coordinator"]
-    
+    static_coordinator: ProPresenterCoordinator = config_entry.runtime_data[
+        "coordinator"
+    ]
+    streaming_coordinator: ProPresenterStreamingCoordinator = config_entry.runtime_data[
+        "streaming_coordinator"
+    ]
+
     entities = []
-    
+
     # Get all timers from static coordinator
     timers = static_coordinator.data.get("timers", [])
     _LOGGER.debug(f"Found {len(timers)} timers")
-    
+
     for timer in timers:
         timer_data = timer.get("id", {})
         timer_uuid = timer_data.get("uuid")
         timer_name = timer_data.get("name")
-        
+
         # Skip "Countdown to Time" timers as they're clock-based, not duration-based
         if timer.get("count_down_to_time"):
             _LOGGER.debug(f"Skipping 'Countdown to Time' timer: {timer_name}")
             continue
-        
+
         if timer_uuid and timer_name:
             entities.append(
-                ProPresenterTimer(static_coordinator, streaming_coordinator, config_entry, timer_uuid, timer_name, timer)
+                ProPresenterTimer(
+                    static_coordinator,
+                    streaming_coordinator,
+                    config_entry,
+                    timer_uuid,
+                    timer_name,
+                    timer,
+                )
             )
-    
+
     async_add_entities(entities)
 
 
@@ -65,7 +76,9 @@ class ProPresenterTimer(ProPresenterBaseEntity, TimerEntity):
         timer_config: dict[str, Any],
     ) -> None:
         """Initialize the timer."""
-        super().__init__(streaming_coordinator, config_entry, static_coordinator=coordinator)
+        super().__init__(
+            streaming_coordinator, config_entry, static_coordinator=coordinator
+        )
         self._timer_uuid = timer_uuid
         self._timer_name = timer_name
         self._timer_config = timer_config
@@ -77,10 +90,10 @@ class ProPresenterTimer(ProPresenterBaseEntity, TimerEntity):
         """Parse time string (HH:MM:SS or -HH:MM:SS) to seconds."""
         if not time_str:
             return 0
-        
+
         is_negative = time_str.startswith("-")
         time_str = time_str.lstrip("-")
-        
+
         parts = time_str.split(":")
         if len(parts) == 3:
             hours, minutes, seconds = map(int, parts)
@@ -110,23 +123,25 @@ class ProPresenterTimer(ProPresenterBaseEntity, TimerEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return additional state attributes."""
         attrs = {}
-        
+
         # Add timer type
         if self._timer_config.get("countdown"):
             attrs["timer_type"] = "countdown"
-            attrs["configured_duration"] = self._timer_config["countdown"].get("duration", 0)
+            attrs["configured_duration"] = self._timer_config["countdown"].get(
+                "duration", 0
+            )
         elif self._timer_config.get("elapsed"):
             attrs["timer_type"] = "elapsed"
             attrs["start_time"] = self._timer_config["elapsed"].get("start_time", 0)
-        
+
         attrs["allows_overrun"] = self._timer_config.get("allows_overrun", False)
-        
+
         # Add current state from streaming data
         current_state = self._get_timer_current_state()
         if current_state:
             attrs["current_time_display"] = current_state.get("time", "00:00:00")
             attrs["pp_state"] = current_state.get("state", "stopped")
-        
+
         return attrs
 
     @property
@@ -147,10 +162,10 @@ class ProPresenterTimer(ProPresenterBaseEntity, TimerEntity):
         current_state = self._get_timer_current_state()
         if not current_state:
             return None
-        
+
         time_str = current_state.get("time", "00:00:00")
         seconds = self._parse_time_to_seconds(time_str)
-        
+
         # For countdown timers, the time is the remaining time
         # For elapsed timers, we need to calculate remaining from start_time
         if self._timer_config.get("countdown"):
@@ -163,7 +178,7 @@ class ProPresenterTimer(ProPresenterBaseEntity, TimerEntity):
             start_seconds = self._timer_config["elapsed"].get("start_time", 0)
             remaining = start_seconds - seconds
             return timedelta(seconds=max(0, remaining))
-        
+
         return None
 
     @property
@@ -178,7 +193,9 @@ class ProPresenterTimer(ProPresenterBaseEntity, TimerEntity):
             _LOGGER.debug(f"Starting timer: {self._timer_name}")
             await self.api.timer_operation(self._timer_uuid, "start")
         except Exception as err:
-            _LOGGER.error(f"Error starting timer {self._timer_name}: {err}", exc_info=True)
+            _LOGGER.error(
+                f"Error starting timer {self._timer_name}: {err}", exc_info=True
+            )
 
     async def async_pause(self) -> None:
         """Pause the timer."""
@@ -186,7 +203,9 @@ class ProPresenterTimer(ProPresenterBaseEntity, TimerEntity):
             _LOGGER.debug(f"Pausing timer: {self._timer_name}")
             await self.api.timer_operation(self._timer_uuid, "stop")
         except Exception as err:
-            _LOGGER.error(f"Error pausing timer {self._timer_name}: {err}", exc_info=True)
+            _LOGGER.error(
+                f"Error pausing timer {self._timer_name}: {err}", exc_info=True
+            )
 
     async def async_cancel(self) -> None:
         """Cancel/reset the timer."""
@@ -194,7 +213,9 @@ class ProPresenterTimer(ProPresenterBaseEntity, TimerEntity):
             _LOGGER.debug(f"Resetting timer: {self._timer_name}")
             await self.api.timer_operation(self._timer_uuid, "reset")
         except Exception as err:
-            _LOGGER.error(f"Error resetting timer {self._timer_name}: {err}", exc_info=True)
+            _LOGGER.error(
+                f"Error resetting timer {self._timer_name}: {err}", exc_info=True
+            )
 
     async def async_finish(self) -> None:
         """Finish the timer (set to 0)."""
@@ -204,4 +225,6 @@ class ProPresenterTimer(ProPresenterBaseEntity, TimerEntity):
             await self.api.timer_operation(self._timer_uuid, "reset")
             await self.api.timer_operation(self._timer_uuid, "stop")
         except Exception as err:
-            _LOGGER.error(f"Error finishing timer {self._timer_name}: {err}", exc_info=True)
+            _LOGGER.error(
+                f"Error finishing timer {self._timer_name}: {err}", exc_info=True
+            )

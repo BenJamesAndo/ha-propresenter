@@ -21,33 +21,57 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up ProPresenter timer control button entities."""
-    static_coordinator: ProPresenterCoordinator = config_entry.runtime_data["coordinator"]
-    streaming_coordinator: ProPresenterStreamingCoordinator = config_entry.runtime_data["streaming_coordinator"]
-    
+    static_coordinator: ProPresenterCoordinator = config_entry.runtime_data[
+        "coordinator"
+    ]
+    streaming_coordinator: ProPresenterStreamingCoordinator = config_entry.runtime_data[
+        "streaming_coordinator"
+    ]
+
     entities = []
-    
+
     # Get all timers from static coordinator
     timers = static_coordinator.data.get("timers", [])
     _LOGGER.debug(f"Found {len(timers)} timers for controls")
-    
+
     for timer in timers:
         timer_data = timer.get("id", {})
         timer_uuid = timer_data.get("uuid")
         timer_name = timer_data.get("name")
-        
+
         # Skip "Countdown to Time" timers as they're clock-based, not duration-based
         if timer.get("count_down_to_time"):
             _LOGGER.debug(f"Skipping 'Countdown to Time' timer controls: {timer_name}")
             continue
-        
+
         if timer_uuid and timer_name:
             # Create start, stop, and reset buttons for each timer
-            entities.extend([
-                ProPresenterTimerStartButton(static_coordinator, streaming_coordinator, config_entry, timer_uuid, timer_name),
-                ProPresenterTimerStopButton(static_coordinator, streaming_coordinator, config_entry, timer_uuid, timer_name),
-                ProPresenterTimerResetButton(static_coordinator, streaming_coordinator, config_entry, timer_uuid, timer_name),
-            ])
-    
+            entities.extend(
+                [
+                    ProPresenterTimerStartButton(
+                        static_coordinator,
+                        streaming_coordinator,
+                        config_entry,
+                        timer_uuid,
+                        timer_name,
+                    ),
+                    ProPresenterTimerStopButton(
+                        static_coordinator,
+                        streaming_coordinator,
+                        config_entry,
+                        timer_uuid,
+                        timer_name,
+                    ),
+                    ProPresenterTimerResetButton(
+                        static_coordinator,
+                        streaming_coordinator,
+                        config_entry,
+                        timer_uuid,
+                        timer_name,
+                    ),
+                ]
+            )
+
     async_add_entities(entities)
 
 

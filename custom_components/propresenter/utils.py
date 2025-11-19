@@ -7,15 +7,15 @@ from typing import Any
 
 def get_nested_value(data: dict[str, Any], *keys: str, default: Any = None) -> Any:
     """Safely get a nested value from a dictionary.
-    
+
     Args:
         data: The dictionary to extract from
         *keys: The keys to traverse (e.g., "id", "name")
         default: The default value if any key is missing
-        
+
     Returns:
         The value at the nested key path, or default if not found
-        
+
     Example:
         get_nested_value(item, "id", "name", default="Unknown")
         # Instead of: item.get("id", {}).get("name", "Unknown")
@@ -31,11 +31,11 @@ def get_nested_value(data: dict[str, Any], *keys: str, default: Any = None) -> A
 
 def generate_slide_label(slide: dict[str, Any], slide_index: int) -> str:
     """Generate a label for a slide from its label, text, or index.
-    
+
     Args:
         slide: The slide dict with 'label' and 'text' fields
         slide_index: The index of the slide (0-based)
-    
+
     Returns:
         A string label for the slide
     """
@@ -56,12 +56,12 @@ def make_unique_display_name(
     slide_index: int,
 ) -> str:
     """Create a unique display name by appending slide index if needed.
-    
+
     Args:
         base_name: The base display name
         cache: The cache dict to check for duplicates
         slide_index: The slide index to append if duplicate
-        
+
     Returns:
         A unique display name
     """
@@ -72,7 +72,7 @@ def make_unique_display_name(
 
 def collect_playlist_uuids(items: list[dict[str, Any]], uuids_list: list[str]) -> None:
     """Recursively collect playlist UUIDs from items and their children.
-    
+
     Args:
         items: List of playlist items
         uuids_list: List to append UUIDs to (modified in place)
@@ -80,7 +80,7 @@ def collect_playlist_uuids(items: list[dict[str, Any]], uuids_list: list[str]) -
     for item in items:
         field_type = item.get("field_type", "")
         playlist_uuid = get_nested_value(item, "id", "uuid")
-        
+
         if field_type == "playlist" and playlist_uuid:
             uuids_list.append(playlist_uuid)
         elif field_type == "group":

@@ -31,33 +31,40 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
     Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
     """
-    _LOGGER.debug("Validating input: host=%s, port=%s", data[CONF_HOST], data[CONF_PORT])
+    _LOGGER.debug(
+        "Validating input: host=%s, port=%s", data[CONF_HOST], data[CONF_PORT]
+    )
     api = ProPresenterAPI(data[CONF_HOST], data[CONF_PORT])
-    
+
     try:
         # Test the connection by getting version info
         version_info = await api.get_version()
-        
+
         _LOGGER.debug("Version info response: %s", version_info)
-        
+
         if not version_info:
             _LOGGER.error("Failed to get version information from ProPresenter")
             raise CannotConnect("Failed to get version information")
-        
+
         # Extract version string from host_description (format: "ProPresenter 19.0.1")
         host_description = version_info.get("host_description", "")
-        
+
         if not host_description or not host_description.startswith("ProPresenter"):
-            _LOGGER.warning("ProPresenter version information not available. Response: %s", version_info)
+            _LOGGER.warning(
+                "ProPresenter version information not available. Response: %s",
+                version_info,
+            )
             raise CannotConnect("Unable to determine ProPresenter version")
-        
+
         # Parse version from host_description (e.g., "ProPresenter 19.0.1" -> "19.0.1")
         version_str = host_description.replace("ProPresenter ", "").strip()
-        
+
         if not version_str:
-            _LOGGER.warning("Could not extract version from host_description: %s", host_description)
+            _LOGGER.warning(
+                "Could not extract version from host_description: %s", host_description
+            )
             raise CannotConnect("Unable to determine ProPresenter version")
-        
+
         # Parse version (format: "19.0.1" or similar)
         version_info_parsed = None
         try:
@@ -68,13 +75,15 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
             version_info_parsed = (major, minor, patch)
         except (ValueError, IndexError) as err:
             _LOGGER.warning("Could not parse ProPresenter version: %s", version_str)
-            raise CannotConnect(f"Could not validate ProPresenter version: {version_str}") from err
-            
+            raise CannotConnect(
+                f"Could not validate ProPresenter version: {version_str}"
+            ) from err
+
         # Extract useful info for the title
         name = version_info.get("name", "ProPresenter")
-        
+
         _LOGGER.debug("Successfully connected to %s version %s", name, version_str)
-        
+
         return {
             "title": f"{name} ({data[CONF_HOST]})",
             "name": name,
@@ -115,14 +124,12 @@ class ProPresenterConfigFlow(ConfigFlow, domain=DOMAIN):
                     _LOGGER.warning(
                         "ProPresenter version %s detected. This integration works best with v19 or higher. "
                         "Older versions may have limited functionality.",
-                        info.get("version", "Unknown")
+                        info.get("version", "Unknown"),
                     )
-                
+
                 # Update the config entry with new data
                 return self.async_update_reload_and_abort(
-                    entry,
-                    data=user_input,
-                    reason="reconfigure_successful"
+                    entry, data=user_input, reason="reconfigure_successful"
                 )
 
         # Pre-fill form with current values
@@ -131,7 +138,9 @@ class ProPresenterConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_HOST, default=entry.data.get(CONF_HOST)): str,
-                    vol.Required(CONF_PORT, default=entry.data.get(CONF_PORT, DEFAULT_PORT)): int,
+                    vol.Required(
+                        CONF_PORT, default=entry.data.get(CONF_PORT, DEFAULT_PORT)
+                    ): int,
                 }
             ),
             errors=errors,
@@ -155,7 +164,7 @@ class ProPresenterConfigFlow(ConfigFlow, domain=DOMAIN):
                 # Use device name as unique_id (matches zeroconf pattern for consistency)
                 device_name = info.get("name", "ProPresenter")
                 await self.async_set_unique_id(device_name)
-                
+
                 # Auto-update IP if device already configured
                 self._abort_if_unique_id_configured(
                     updates={
@@ -169,7 +178,7 @@ class ProPresenterConfigFlow(ConfigFlow, domain=DOMAIN):
                     _LOGGER.warning(
                         "ProPresenter version %s detected. This integration works best with v19 or higher. "
                         "Older versions may have limited functionality.",
-                        info.get("version", "Unknown")
+                        info.get("version", "Unknown"),
                     )
 
                 return self.async_create_entry(
@@ -189,29 +198,31 @@ class ProPresenterConfigFlow(ConfigFlow, domain=DOMAIN):
         """Handle zeroconf discovery."""
         import asyncio
         import ipaddress
-        
+
         port = discovery_info.port or DEFAULT_PORT
 
         # Get all IP addresses from discovery info
         # discovery_info.addresses contains all IPs as bytes
         ip_candidates = []
-        if hasattr(discovery_info, 'addresses') and discovery_info.addresses:
+        if hasattr(discovery_info, "addresses") and discovery_info.addresses:
             for addr_bytes in discovery_info.addresses:
                 try:
                     ip_obj = ipaddress.ip_address(addr_bytes)
                     ip = str(ip_obj)
                     # Filter out IPv6 and link-local
                     if ip_obj.version == 6:
-                        _LOGGER.debug("ProPresenter discovery: Skipping IPv6 address: %s", ip)
+                        _LOGGER.debug(
+                            "ProPresenter discovery: Skipping IPv6 address: %s", ip
+                        )
                         continue
                     ip_candidates.append(ip)
                 except (ValueError, OSError):
                     continue
-        
+
         # Fallback to single host if addresses not available
         if not ip_candidates and discovery_info.host:
             ip_candidates = [discovery_info.host]
-        
+
         if not ip_candidates:
             return self.async_abort(reason="no_host")
 
@@ -221,7 +232,7 @@ class ProPresenterConfigFlow(ConfigFlow, domain=DOMAIN):
             len(ip_candidates),
             ip_candidates,
         )
-        
+
         async def try_connection(ip: str):
             """Try connecting to a specific IP."""
             try:
@@ -236,14 +247,14 @@ class ProPresenterConfigFlow(ConfigFlow, domain=DOMAIN):
             except Exception as err:  # pylint: disable=broad-except
                 _LOGGER.debug("ProPresenter discovery: %s failed: %s", ip, err)
                 return None
-        
+
         # Create tasks for all IPs and race them
         tasks = [asyncio.create_task(try_connection(ip)) for ip in ip_candidates]
-        
+
         # Use asyncio.as_completed to get first successful connection
         ip_address = None
         info = None
-        
+
         for coro in asyncio.as_completed(tasks):
             result = await coro
             if result is not None:
@@ -258,13 +269,13 @@ class ProPresenterConfigFlow(ConfigFlow, domain=DOMAIN):
                     if not task.done():
                         task.cancel()
                 break
-        
+
         if not ip_address or not info:
             return self.async_abort(reason="cannot_connect")
 
         device_name = info.get("name", "ProPresenter")
         await self.async_set_unique_id(device_name)
-        
+
         existing_entries = self._async_current_entries(include_ignore=False)
         for entry in existing_entries:
             if entry.unique_id == device_name:
@@ -272,7 +283,7 @@ class ProPresenterConfigFlow(ConfigFlow, domain=DOMAIN):
                 if new_data.get(CONF_HOST) != ip_address:
                     new_data[CONF_HOST] = ip_address
                     self.hass.config_entries.async_update_entry(entry, data=new_data)
-                
+
                 return self.async_abort(reason="already_configured")
 
         self.context.update(

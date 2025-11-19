@@ -32,27 +32,34 @@ def async_setup_services(hass: HomeAssistant) -> None:
         """Handle the show_message service call."""
         message_identifier = call.data.get("message")
         tokens = call.data.get("tokens", {})
-        
+
         if not message_identifier:
             _LOGGER.error("Message UUID or name is required")
             return
-        
-        _LOGGER.debug("Show message service called: message=%s, tokens=%s", message_identifier, tokens)
-        
+
+        _LOGGER.debug(
+            "Show message service called: message=%s, tokens=%s",
+            message_identifier,
+            tokens,
+        )
+
         # Find all ProPresenter integrations
         found = False
         for entry_id in hass.data.get(DOMAIN, {}):
             coordinator: ProPresenterCoordinator = hass.data[DOMAIN][entry_id]
-            
+
             # Find the message by UUID or name
             messages = coordinator.data.get("messages", [])
             for message in messages:
                 message_data = message.get("id", {})
                 message_uuid = message_data.get("uuid")
                 message_name = message_data.get("name")
-                
+
                 # Check if identifier matches UUID or name
-                if message_uuid == message_identifier or message_name == message_identifier:
+                if (
+                    message_uuid == message_identifier
+                    or message_name == message_identifier
+                ):
                     # Build token structure matching ProPresenter's format
                     # Need to match token names with their UUIDs from the message definition
                     token_data = {}
@@ -64,19 +71,25 @@ def async_setup_services(hass: HomeAssistant) -> None:
                                 if msg_token.get("name") == token_name:
                                     token_data[token_name] = token_value
                                     break
-                    
+
                     # Show the message with tokens if provided
-                    await coordinator.api.show_message(message_uuid, token_data if token_data else None)
+                    await coordinator.api.show_message(
+                        message_uuid, token_data if token_data else None
+                    )
                     await coordinator.async_request_refresh()
-                    
-                    _LOGGER.info("Showed message: %s (UUID: %s) with tokens: %s", 
-                               message_name, message_uuid, token_data)
+
+                    _LOGGER.info(
+                        "Showed message: %s (UUID: %s) with tokens: %s",
+                        message_name,
+                        message_uuid,
+                        token_data,
+                    )
                     found = True
                     break
-            
+
             if found:
                 break
-        
+
         if not found:
             _LOGGER.error("Message not found: %s", message_identifier)
 
@@ -91,18 +104,22 @@ def async_setup_services(hass: HomeAssistant) -> None:
     async def async_refresh_presentation_cache(call: ServiceCall) -> None:
         """Force refresh presentation and playlist caches."""
         _LOGGER.info("Refreshing presentation and playlist caches via service call")
-        
+
         for entry_id in hass.data.get(DOMAIN, {}):
             coordinator: ProPresenterCoordinator = hass.data[DOMAIN][entry_id]
-            
+
             # Invalidate playlist cache in coordinator
             coordinator.invalidate_playlist_cache()
-            
+
             # Request coordinator refresh to fetch new data
             await coordinator.async_request_refresh()
-            
-        _LOGGER.info("Cache refresh completed - coordinator playlist caches invalidated and refreshed")
-        _LOGGER.info("Note: Sensor presentation caches will auto-refresh when presentation changes")
+
+        _LOGGER.info(
+            "Cache refresh completed - coordinator playlist caches invalidated and refreshed"
+        )
+        _LOGGER.info(
+            "Note: Sensor presentation caches will auto-refresh when presentation changes"
+        )
 
     hass.services.async_register(
         DOMAIN,

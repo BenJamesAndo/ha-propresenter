@@ -17,13 +17,41 @@ _LOGGER = logging.getLogger(__name__)
 
 # Define available clear layers with icons for active/inactive states
 CLEAR_LAYERS = {
-    "audio": {"name": "Clear Audio", "icon_active": "mdi:volume-high", "icon_inactive": "mdi:volume-variant-off"},
-    "messages": {"name": "Clear Messages", "icon_active": "mdi:send-circle", "icon_inactive": "mdi:send-circle-outline"},
-    "props": {"name": "Clear Props", "icon_active": "mdi:layers-outline", "icon_inactive": "mdi:layers-off-outline"},
-    "announcements": {"name": "Clear Announcements", "icon_active": "mdi:bullhorn-variant", "icon_inactive": "mdi:bullhorn-outline"},
-    "slide": {"name": "Clear Slide", "icon_active": "mdi:text-box-outline", "icon_inactive": "mdi:text-box-remove-outline"},
-    "media": {"name": "Clear Media", "icon_active": "mdi:play-box", "icon_inactive": "mdi:play-box-outline"},
-    "video_input": {"name": "Clear Video Input", "icon_active": "mdi:video-box", "icon_inactive": "mdi:video-off-outline"},
+    "audio": {
+        "name": "Clear Audio",
+        "icon_active": "mdi:volume-high",
+        "icon_inactive": "mdi:volume-variant-off",
+    },
+    "messages": {
+        "name": "Clear Messages",
+        "icon_active": "mdi:send-circle",
+        "icon_inactive": "mdi:send-circle-outline",
+    },
+    "props": {
+        "name": "Clear Props",
+        "icon_active": "mdi:layers-outline",
+        "icon_inactive": "mdi:layers-off-outline",
+    },
+    "announcements": {
+        "name": "Clear Announcements",
+        "icon_active": "mdi:bullhorn-variant",
+        "icon_inactive": "mdi:bullhorn-outline",
+    },
+    "slide": {
+        "name": "Clear Slide",
+        "icon_active": "mdi:text-box-outline",
+        "icon_inactive": "mdi:text-box-remove-outline",
+    },
+    "media": {
+        "name": "Clear Media",
+        "icon_active": "mdi:play-box",
+        "icon_inactive": "mdi:play-box-outline",
+    },
+    "video_input": {
+        "name": "Clear Video Input",
+        "icon_active": "mdi:video-box",
+        "icon_inactive": "mdi:video-off-outline",
+    },
 }
 
 
@@ -34,21 +62,25 @@ async def async_setup_entry(
 ) -> None:
     """Set up ProPresenter button entities."""
     coordinator: ProPresenterCoordinator = config_entry.runtime_data["coordinator"]
-    streaming_coordinator: ProPresenterStreamingCoordinator = config_entry.runtime_data["streaming_coordinator"]
-    
+    streaming_coordinator: ProPresenterStreamingCoordinator = config_entry.runtime_data[
+        "streaming_coordinator"
+    ]
+
     # Create slide control button entities
     entities = [
         ProPresenterNextSlideButton(coordinator, config_entry),
         ProPresenterPreviousSlideButton(coordinator, config_entry),
         ProPresenterFindMyMouseButton(coordinator, config_entry),
     ]
-    
+
     # Add clear layer buttons (using streaming coordinator for status)
     for layer_id, layer_info in CLEAR_LAYERS.items():
         entities.append(
-            ProPresenterClearLayerButton(coordinator, streaming_coordinator, config_entry, layer_id, layer_info)
+            ProPresenterClearLayerButton(
+                coordinator, streaming_coordinator, config_entry, layer_id, layer_info
+            )
         )
-    
+
     # Add Clear All button
     clear_groups = coordinator.data.get("clear_groups", [])
     for group in clear_groups:
@@ -57,25 +89,29 @@ async def async_setup_entry(
         group_name = group_data.get("name")
         if group_uuid and group_name:
             entities.append(
-                ProPresenterClearGroupButton(coordinator, config_entry, group_uuid, group_name)
+                ProPresenterClearGroupButton(
+                    coordinator, config_entry, group_uuid, group_name
+                )
             )
-    
+
     # Add timer reset buttons
     timers = coordinator.data.get("timers", [])
     for timer in timers:
         timer_data = timer.get("id", {})
         timer_uuid = timer_data.get("uuid")
         timer_name = timer_data.get("name")
-        
+
         # Skip "Countdown to Time" timers as they're clock-based, not duration-based
         if timer.get("count_down_to_time"):
             continue
-        
+
         if timer_uuid and timer_name:
             entities.append(
-                ProPresenterTimerResetButton(coordinator, config_entry, timer_uuid, timer_name)
+                ProPresenterTimerResetButton(
+                    coordinator, config_entry, timer_uuid, timer_name
+                )
             )
-    
+
     async_add_entities(entities)
 
 
@@ -268,7 +304,9 @@ class ProPresenterClearLayerButton(ProPresenterBaseEntity, ButtonEntity):
         layer_info: dict,
     ) -> None:
         """Initialize the clear layer button."""
-        super().__init__(streaming_coordinator, config_entry, static_coordinator=coordinator)
+        super().__init__(
+            streaming_coordinator, config_entry, static_coordinator=coordinator
+        )
         self.api = coordinator.api  # Keep reference to API for actions
         self._layer_id = layer_id
         self._layer_info = layer_info
@@ -280,7 +318,7 @@ class ProPresenterClearLayerButton(ProPresenterBaseEntity, ButtonEntity):
         """Return the icon based on layer status."""
         # Get the unified layer status from streaming coordinator (self.coordinator is the streaming coordinator)
         status_layers = self.coordinator.data.get("status_layers", {})
-        
+
         # Map our layer IDs to the API's layer names
         layer_map = {
             "audio": "audio",
@@ -291,19 +329,19 @@ class ProPresenterClearLayerButton(ProPresenterBaseEntity, ButtonEntity):
             "media": "media",
             "video_input": "video_input",
         }
-        
+
         api_layer_name = layer_map.get(self._layer_id)
         is_active = False
-        
+
         if api_layer_name and status_layers:
             is_active = status_layers.get(api_layer_name, False)
-        
+
         # Return different icon when active vs inactive
         if is_active:
             return self._layer_info["icon_active"]
         else:
             return self._layer_info["icon_inactive"]
-    
+
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes including status."""
@@ -320,10 +358,10 @@ class ProPresenterClearLayerButton(ProPresenterBaseEntity, ButtonEntity):
         }
         api_layer_name = layer_map.get(self._layer_id)
         is_active = False
-        
+
         if api_layer_name and status_layers:
             is_active = status_layers.get(api_layer_name, False)
-        
+
         return {
             "layer_active": is_active,
             "layer_id": self._layer_id,
