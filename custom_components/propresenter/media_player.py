@@ -633,7 +633,7 @@ class ProPresenterVideoMediaPlayer(ProPresenterBaseEntity, MediaPlayerEntity):
             for item in items:
                 if not item:
                     continue
-                
+
                 item_id = item.get("id")
                 if not item_id:
                     continue
