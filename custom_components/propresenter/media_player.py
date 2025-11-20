@@ -633,24 +633,22 @@ class ProPresenterVideoMediaPlayer(ProPresenterBaseEntity, MediaPlayerEntity):
             for item in items:
                 if not item:
                     continue
+                
+                item_id = item.get("id")
+                if not item_id:
+                    continue
 
-                # Include both video and image types
-                if item.get("type") in ["video", "image"]:
-                    item_id = item.get("id")
-                    if not item_id:
-                        continue
+                item_name = item_id.get("name", "")
+                if not item_name:
+                    continue
 
-                    item_name = item_id.get("name", "")
-                    if not item_name:
-                        continue
+                # If we have multiple playlists, prefix with playlist name
+                if len(media_playlist_details_list) > 1:
+                    display_name = f"{playlist_name} - {item_name}"
+                else:
+                    display_name = item_name
 
-                    # If we have multiple playlists, prefix with playlist name
-                    if len(media_playlist_details_list) > 1:
-                        display_name = f"{playlist_name} - {item_name}"
-                    else:
-                        display_name = item_name
-
-                    sources.append(display_name)
+                sources.append(display_name)
 
         return sources
 
@@ -768,33 +766,32 @@ class ProPresenterVideoMediaPlayer(ProPresenterBaseEntity, MediaPlayerEntity):
                 if not item:
                     continue
 
-                # Support both video and image types
-                if item.get("type") in ["video", "image"]:
-                    item_id = item.get("id")
-                    if not item_id:
-                        continue
+                # Accept all items from media playlists (see note in source_list about Mac bug)
+                item_id = item.get("id")
+                if not item_id:
+                    continue
 
-                    item_name = item_id.get("name", "")
-                    item_item_uuid = item_id.get("uuid")
+                item_name = item_id.get("name", "")
+                item_item_uuid = item_id.get("uuid")
 
-                    if not item_name or not item_item_uuid:
-                        continue
+                if not item_name or not item_item_uuid:
+                    continue
 
-                    # Check if this is the selected item
-                    # Handle both "Playlist - Item" and "Item" formats
-                    if len(media_playlist_details_list) > 1:
-                        full_display_name = f"{playlist_name} - {item_name}"
-                        if full_display_name == source:
-                            playlist_uuid = current_playlist_uuid
-                            item_uuid = item_item_uuid
-                            found = True
-                            break
-                    else:
-                        if item_name == source:
-                            playlist_uuid = current_playlist_uuid
-                            item_uuid = item_item_uuid
-                            found = True
-                            break
+                # Check if this is the selected item
+                # Handle both "Playlist - Item" and "Item" formats
+                if len(media_playlist_details_list) > 1:
+                    full_display_name = f"{playlist_name} - {item_name}"
+                    if full_display_name == source:
+                        playlist_uuid = current_playlist_uuid
+                        item_uuid = item_item_uuid
+                        found = True
+                        break
+                else:
+                    if item_name == source:
+                        playlist_uuid = current_playlist_uuid
+                        item_uuid = item_item_uuid
+                        found = True
+                        break
 
             if found:
                 break
