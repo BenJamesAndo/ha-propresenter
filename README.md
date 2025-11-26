@@ -1,6 +1,6 @@
 # ProPresenter Integration for Home Assistant
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://hacs.xyz/)
 
 This custom integration allows you to control [ProPresenter](https://www.renewedvision.com/propresenter) presentation software from Home Assistant. Fully functional with ProPresenter v19 and up. Partial functionality with v7.9.1 and up.
 
@@ -41,17 +41,9 @@ Make sure the ProPresenter API is enabled:
 ### Home Assistant Setup - HACS (Recommended)
 
 1. Make sure you have [HACS](https://hacs.xyz/) installed in your Home Assistant instance
-2. Click the button below to add this repository to HACS:
+2. Search for  `ProPresenter` in HACS or click the button below:
 
    [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=BenJamesAndo&repository=ha-propresenter&category=integration)
-
-   Or manually add it:
-   - Go to **HACS** → **Integrations**
-   - Click the three dots menu (⋮) in the top right
-   - Select **Custom repositories**
-   - Add repository URL: `https://github.com/BenJamesAndo/ha-propresenter`
-   - Select category: **Integration**
-   - Click **Add**
 
 3. Click **Download** on the ProPresenter integration
 4. Restart Home Assistant
@@ -59,7 +51,7 @@ Make sure the ProPresenter API is enabled:
 <img width="325" height="253" alt="image" src="https://github.com/user-attachments/assets/2a07803f-d98d-43be-9b04-1736978db00f" />
 
 6. Otherwise go to **Settings** → **Devices & Services** → **Add Integration**
-7. Search for "ProPresenter" and follow the setup instructions
+7. Search for `ProPresenter` and follow the setup instructions
 
 ### Manual Installation
 
