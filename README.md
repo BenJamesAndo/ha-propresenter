@@ -4,7 +4,7 @@
 
 This custom integration allows you to control [ProPresenter](https://www.renewedvision.com/propresenter) presentation software from Home Assistant. Fully functional with ProPresenter v19 and up. Partial functionality with v7.9.1 and up.
 
-## Features
+## Some of the Features
 
 - **Media & Audio Player Integration**: Full media player entity for controlling playback with seek and playlist support
 <img width="524" height="192" alt="image" src="https://github.com/user-attachments/assets/8913e5ed-6249-4fc9-a194-7012a9a8acab" />
@@ -25,6 +25,11 @@ This custom integration allows you to control [ProPresenter](https://www.renewed
 - **Presentation Thumbnails**: Image entities displaying slide thumbnails for easy reference
 <img width="751" height="324" alt="image" src="https://github.com/user-attachments/assets/44f10684-43d3-45a9-a91a-550a7a76f9d6" />
 
+## Video Guide
+
+<a href="https://youtu.be/4U3ebJGnlks">
+    <img src="https://img.youtube.com/vi/4U3ebJGnlks/maxresdefault.jpg" alt="Watch the video" style="width: 50%; border-radius: 8px;">
+</a>
 
 ## Installation
 
@@ -63,6 +68,7 @@ Make sure the ProPresenter API is enabled:
 2. Restart Home Assistant
 
 3. Refer to step 5 above
+
 
 ## Other Noteworthy Projects
 Home Assistant ProWebRemote Add-on
